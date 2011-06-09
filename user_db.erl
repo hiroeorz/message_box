@@ -29,7 +29,7 @@ delete_user(Id)->
     call(delete_user, [Id]).
 
 lookup_id(Id)->
-    refence_call(lookup_id, [Id]).
+    reference_call(lookup_id, [Id]).
 
 %%
 %% initial setup functions.
@@ -65,7 +65,7 @@ call(Name, Args)->
 	{reply, Result} -> Result
     end.
 
-refence_call(Name, Args)->
+reference_call(Name, Args)->
     ?MODULE ! {ref_request, self(), Name, Args},
     receive
 	{reply, Result} -> Result
