@@ -3,19 +3,42 @@
 
 -module(user_db).
 -include("user.hrl").
--export([start/0, start/1, stop/0,
-	 create_tables/1, close_tables/0, restore_table/0,
-	 add_user/1, add_user/3, update_user/1, delete_user/1, lookup_id/1]).
 
+-export([start/0, stop/0, loop/1,
+	 call/2, reply/2, 
+	 add_user/3, update_user/1, delete_user/1, lookup_id/1]).
+-export([init/1]).
+
+%%
+%% spawn remote database process.
+%%
 start() ->
-    start("/tmp/user_db").
+    register(?MODULE, spawn(?MODULE, init, ["/tmp/user_db"])).
 
-start(FileName)->
+%%
+%% client functions.
+%%
+
+add_user(Id, Name, Status)->
+    call(add_user, [Id, Name, Status]).
+
+update_user(#user{id=_UserID, name=_UserName, status=_Status} = User)->
+    call(update_user, [User]).
+
+delete_user(Id)->
+    call(delete_user, [Id]).
+
+lookup_id(Id)->
+    refence_call(lookup_id, [Id]).
+
+%%
+%% initial setup functions.
+%%
+
+init(FileName)->
     create_tables(FileName),
-    restore_table().
-
-stop()->
-    close_tables().
+    restore_table(),
+    loop(ok).
 
 create_tables(FileName) ->
     ets:new(userRam, [named_table, {keypos, #user.id}]),
@@ -32,22 +55,67 @@ restore_table()->
 	     end,
     dets:traverse(userDisk, Insert).
 
-add_user(Id, Name, Status)->
-    add_user(#user{id=Id, name=Name, status=Status}).
+%%
+%% remote call functions.
+%%
 
-add_user(#user{id=_UserID, name=_UserName, status=_Status} = User) ->
+call(Name, Args)->
+    ?MODULE ! {request, self(), Name, Args},
+    receive
+	{reply, Result} -> Result
+    end.
+
+refence_call(Name, Args)->
+    ?MODULE ! {ref_request, self(), Name, Args},
+    receive
+	{reply, Result} -> Result
+    end.
+
+reply(To, Result)->
+    To ! {reply, Result}.
+
+stop() ->
+    ?MODULE ! {stop, self()}.
+
+loop(State)->
+    receive
+	{ref_request, From, Name, Args} ->
+	    spawn(fun()->
+			  Result = handle_msg(Name, Args),
+			  reply(From, Result)
+		  end),
+	    loop(State);
+
+	{request, From, Name, Args} ->
+	    Result = handle_msg(Name, Args),
+	    reply(From, Result),
+	    loop(State);
+	{stop, From}->
+	    reply(From, close_tables());
+	_Other->
+	    reply(error, unknownMessage)
+    end.
+
+%%
+%% server handlers.
+%%
+
+handle_msg(add_user, [Id, Name, Status])->
+    User = #user{id=Id, name=Name, status=Status},
     ets:insert(userRam, User),
     dets:insert(userDisk, User),
-    ok.
+    ok;
 
-update_user(#user{id=_UserID, name=_UserName, status=_Status} = User)->
-    add_user(User).
+handle_msg(update_user, [User])->
+    ets:insert(userRam, User),
+    dets:insert(userDisk, User),
+    ok;
 
-delete_user(Id)->
+handle_msg(delete_user, [Id])->
     ets:delete(userRam, Id),
-    dets:delete(userDisk, Id).
+    dets:delete(userDisk, Id);
 
-lookup_id(Id)->
+handle_msg(lookup_id, [Id])->
     case ets:lookup(userRam, Id) of
 	[User] -> {ok, User};
 	[] -> {error, instance}
