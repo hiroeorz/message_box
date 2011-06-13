@@ -6,21 +6,28 @@
 
 -export([start/0, stop/0, loop/1,
 	 call/2, reply/2, 
-	 add_user/3, update_user/1, delete_user/1, lookup_id/1]).
+	 add_user/1, update_user/1, delete_user/1, lookup_id/1, lookup_name/1]).
 -export([init/1]).
 
 %%
 %% spawn remote database process.
 %%
 start() ->
-    register(?MODULE, spawn(?MODULE, init, ["/tmp/user_db"])).
+    register(?MODULE, spawn(?MODULE, init, 
+			    ["/usr/local/message_box/db/user_db"])).
 
 %%
 %% client functions.
 %%
 
-add_user(Id, Name, Status)->
-    call(add_user, [Id, Name, Status]).
+add_user(Name)->
+    Status = true,
+    NextUserId = case ets:last(userRam) of
+		     '$end_of_table' -> 1;
+		     UserId -> UserId + 1
+		 end,
+
+    call(add_user, [NextUserId, Name, Status]).
 
 update_user(#user{id=_UserID, name=_UserName, status=_Status} = User)->
     call(update_user, [User]).
@@ -30,6 +37,9 @@ delete_user(Id)->
 
 lookup_id(Id)->
     reference_call(lookup_id, [Id]).
+
+lookup_name(Name)->
+    reference_call(lookup_name, [Name]).
 
 %%
 %% initial setup functions.
@@ -81,13 +91,13 @@ loop(State)->
     receive
 	{ref_request, From, Name, Args} ->
 	    spawn(fun()->
-			  Result = handle_msg(Name, Args),
+			  Result = handle_request(Name, Args),
 			  reply(From, Result)
 		  end),
 	    loop(State);
 
 	{request, From, Name, Args} ->
-	    Result = handle_msg(Name, Args),
+	    Result = handle_request(Name, Args),
 	    reply(From, Result),
 	    loop(State);
 	{stop, From}->
@@ -100,24 +110,30 @@ loop(State)->
 %% server handlers.
 %%
 
-handle_msg(add_user, [Id, Name, Status])->
+handle_request(add_user, [Id, Name, Status])->
     User = #user{id=Id, name=Name, status=Status},
     ets:insert(userRam, User),
     dets:insert(userDisk, User),
     ok;
 
-handle_msg(update_user, [User])->
+handle_request(update_user, [User])->
     ets:insert(userRam, User),
     dets:insert(userDisk, User),
     ok;
 
-handle_msg(delete_user, [Id])->
+handle_request(delete_user, [Id])->
     ets:delete(userRam, Id),
     dets:delete(userDisk, Id);
 
-handle_msg(lookup_id, [Id])->
+handle_request(lookup_id, [Id])->
     case ets:lookup(userRam, Id) of
-	[User] -> {ok, User};
-	[] -> {error, instance}
-    end.
+	[] -> {error, not_found};
+	[User] -> {ok, User}
+    end;
 	    
+handle_request(lookup_name, [Name])->    
+    Pattern = #user{id='$1', name=Name, status='$2'},
+    case ets:match(userRam, Pattern) of
+	[]-> {error, not_found};
+	[[UserId, _Status]] -> lookup_id(UserId)
+    end.
