@@ -7,19 +7,23 @@
 
 -export([init/1]).
 -export([start/1, stop/1,
-	 save_message/2, get_message/1, get_message/2, get_latest_message/1]).
+	 save_message/2, get_message/1, get_message/2, get_latest_message/1,
+	 get_sent_timeline/2]).
+
+-export([get_sent_timeline_test/1]).
 
 %%
 %% @doc initial setup functions
 %%
 
 start(UserName)->
-    spawn(?MODULE, init, [UserName]).
+    spawn_link(?MODULE, init, [UserName]).
 
 stop(Pid) ->
     Pid ! {stop, self()}.
 
 init(UserName)->
+    process_flag(trap_exit, true),
     Device = db_name(UserName),
     create_tables(Device),
     restore_table(Device),
@@ -27,7 +31,7 @@ init(UserName)->
     loop(User).
 
 create_tables(Device)->  
-    ets:new(Device, [named_table, {keypos, #message.id}]),
+    ets:new(Device, [ordered_set, named_table, {keypos, #message.id}]),
     {DiscName, FileName} = dets_info(Device),
     dets:open_file(DiscName, [{file, FileName}, {keypos, #message.id}]).
 
@@ -59,6 +63,9 @@ get_message(Id)->
 get_message(Pid, Id)->
     reference_call(Pid, get_message, [Id]).
 
+get_sent_timeline(Pid, Count)->
+    reference_call(Pid, get_sent_timeline, [Count]).
+
 get_latest_message(Pid)->
     reference_call(Pid, get_latest_message, []).
 
@@ -69,35 +76,42 @@ get_latest_message(Pid)->
 call(Pid, Name, Args)->
     Pid ! {request, self(), Name, Args},
     receive
-	{reply, Result} -> Result
+	{Pid, reply, Result} -> Result
     end.
 
 reference_call(Pid, Name, Args)->
     Pid ! {ref_request, self(), Name, Args},
     receive
-	{reply, Result} -> Result
+	{Pid, reply, Result} -> Result
     end.
 
-reply(To, Result)->
-    To ! {reply, Result}.
+reply(To, Pid, Result)->
+    To ! {Pid, reply, Result}.
 
 loop(User) ->
     UserName = User#user.name,
+    Pid = self(),
     receive
 	{ref_request, From, Name, Args} ->
 	    spawn(fun()->
 			  Result = handle_request(Name, [User | Args]),
-			  reply(From, Result)
+			  reply(From, Pid, Result)
 		  end),
 	    loop(User);
 
 	{request, From, Name, Args} ->
 	    Result = handle_request(Name, [User | Args]),
-	    reply(From, Result),
+	    reply(From, Pid, Result),
 	    loop(User);
 	{stop, From} ->
 	    Device = db_name(UserName),
-	    reply(From, close_tables(Device))
+	    reply(From, Pid, close_tables(Device));
+
+	{'EXIT', ExitPid, _Reason} ->
+	    io:format("~p: user process(~p) is shutdown.~n", 
+		      [?MODULE, ExitPid]),
+	    Device = db_name(UserName),
+	    close_tables(Device)
     end.
 
 %%
@@ -123,6 +137,12 @@ handle_request(get_message, [User, MessageId])->
 	[[_Id, Text]] -> {ok, Text}
     end;
 
+handle_request(get_sent_timeline, [User, Count])->
+    Device = db_name(User#user.name),
+    First = ets:first(Device),
+    MessageIds = get_sent_timeline_ids(Device, Count, First, [First]),
+    lists:map(fun(Id) -> [Msg] = ets:lookup(Device, Id), Msg end, MessageIds);
+
 handle_request(get_latest_message, [User])->
     Device = db_name(User#user.name),
     case ets:first(Device) of
@@ -135,6 +155,16 @@ handle_request(get_latest_message, [User])->
 %%
 %% @doc local functions.
 %%
+
+get_sent_timeline_ids(Device, Count, Before, Result)->
+    if
+	length(Result) >= Count -> lists:reverse(Result);
+	true -> case ets:next(Device, Before) of
+		    '$end_of_table' -> lists:reverse(Result);
+		    Id -> get_sent_timeline_ids(Device, Count, Id, 
+						   [Id | Result])
+		end
+    end.
 
 dets_info(UserName)->
     DiscName = list_to_atom(atom_to_list(UserName) ++ "_Disk"),
@@ -154,3 +184,15 @@ get_message_id(UserId, Id)->
     string:concat(FormattedUserId, FormattedId).
 
 db_name(UserName)-> UserName.
+
+%%
+%% test
+%%
+
+get_sent_timeline_test(Count) ->
+    user_db:start(),
+    Pid = message_db:start(shin),
+    Timeline = message_db:get_sent_timeline(Pid, Count),
+    io:format("~p~n", [Timeline]),
+    message_db:stop(Pid),
+    user_db:stop().

@@ -4,14 +4,16 @@
 -module(user_db).
 -include("user.hrl").
 
--export([start/0, stop/0, loop/1,
-	 call/2, reply/2, 
-	 add_user/1, update_user/1, delete_user/1, lookup_id/1, lookup_name/1]).
 -export([init/1]).
+-export([start/0, stop/0, loop/1,
+	 call/2, reply/3, 
+	 add_user/1, update_user/1, delete_user/1, lookup_id/1, lookup_name/1,
+	 map_do/1]).
 
 %%
 %% spawn remote database process.
 %%
+
 start() ->
     register(?MODULE, spawn(?MODULE, init, 
 			    ["/usr/local/message_box/db/user_db"])).
@@ -40,6 +42,9 @@ lookup_id(Id)->
 
 lookup_name(Name)->
     reference_call(lookup_name, [Name]).
+
+map_do(Fun) ->
+    call(map_do, [Fun]).
 
 %%
 %% initial setup functions.
@@ -70,40 +75,46 @@ restore_table()->
 %%
 
 call(Name, Args)->
-    ?MODULE ! {request, self(), Name, Args},
+    Pid = whereis(?MODULE),
+    Pid ! {request, self(), Name, Args},
     receive
-	{reply, Result} -> Result
+	{Pid, reply, Result} -> Result
+    after 30000 -> {error, timeout}
     end.
 
 reference_call(Name, Args)->
-    ?MODULE ! {ref_request, self(), Name, Args},
+    Pid = whereis(?MODULE),
+    Pid ! {ref_request, self(), Name, Args},
     receive
-	{reply, Result} -> Result
+	{Pid, reply, Result} -> Result
+    after 30000 -> {error, timeout}
     end.
 
-reply(To, Result)->
-    To ! {reply, Result}.
+reply(To, Pid, Result)->
+    To ! {Pid, reply, Result}.
 
 stop() ->
     ?MODULE ! {stop, self()}.
 
 loop(State)->
+    Pid = self(),
     receive
 	{ref_request, From, Name, Args} ->
 	    spawn(fun()->
 			  Result = handle_request(Name, Args),
-			  reply(From, Result)
+			  reply(From, Pid, Result)
 		  end),
 	    loop(State);
 
 	{request, From, Name, Args} ->
 	    Result = handle_request(Name, Args),
-	    reply(From, Result),
+	    reply(From, Pid, Result),
 	    loop(State);
+
 	{stop, From}->
-	    reply(From, close_tables());
+	    reply(From, Pid, close_tables());
 	_Other->
-	    reply(error, unknownMessage)
+	    reply(error, Pid, unknownMessage)
     end.
 
 %%
@@ -130,10 +141,34 @@ handle_request(lookup_id, [Id])->
 	[] -> {error, not_found};
 	[User] -> {ok, User}
     end;
-	    
+
 handle_request(lookup_name, [Name])->    
     Pattern = #user{id='$1', name=Name, status='$2'},
     case ets:match(userRam, Pattern) of
 	[]-> {error, not_found};
 	[[UserId, _Status]] -> lookup_id(UserId)
+    end;
+
+handle_request(map_do, [Fun]) ->
+    case ets:first(userRam) of
+	'$end_of_table' ->
+	    ok;
+	First ->
+	    [User] = ets:lookup(userRam, First),
+	    Fun(User),
+	    map_do(Fun, First)
+    end.
+
+%%
+%% local functions.
+%%
+
+map_do(Fun, Entry) ->
+    case ets:next(userRam, Entry) of
+	'$end_of_table' ->
+	    ok;
+	Next ->
+	    [User] = ets:lookup(userRam, Next),
+	    Fun(User),
+	    map_do(Fun, Next)
     end.
