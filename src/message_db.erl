@@ -10,7 +10,9 @@
 	 save_message/2, get_message/1, get_message/2, get_latest_message/1,
 	 get_sent_timeline/2]).
 
--export([get_sent_timeline_test/1]).
+-define(DB_DIR, "./db/").
+-define(MESSAGE_ID_LENGTH, 18).
+-define(USER_ID_LENGTH, 9).
 
 %%
 %% @doc initial setup functions
@@ -56,9 +58,12 @@ save_message(Pid, Text)->
     call(Pid, save_message, [Text]).
 
 get_message(Id)->
-    {UserId, _Rest} = string:to_integer(string:substr(Id, 1, 8)),
-    User = user_db:lookup_id(UserId),
-    get_message(User#user.name, Id).
+    IdStr = util:formatted_number(Id, ?MESSAGE_ID_LENGTH),
+    {UserId, _Rest} = string:to_integer(string:substr(IdStr, 1, 
+						      ?USER_ID_LENGTH)),
+    {ok, User} = user_db:lookup_id(UserId),
+    UserPid = user_db:get_pid(User#user.name),
+    get_message(UserPid, Id).
 
 get_message(Pid, Id)->
     reference_call(Pid, get_message, [Id]).
@@ -77,12 +82,14 @@ call(Pid, Name, Args)->
     Pid ! {request, self(), Name, Args},
     receive
 	{Pid, reply, Result} -> Result
+    after 20000 -> {error, timeout}
     end.
 
 reference_call(Pid, Name, Args)->
     Pid ! {ref_request, self(), Name, Args},
     receive
 	{Pid, reply, Result} -> Result
+    after 20000 -> {error, timeout}
     end.
 
 reply(To, Pid, Result)->
@@ -140,7 +147,7 @@ handle_request(get_message, [User, MessageId])->
 handle_request(get_sent_timeline, [User, Count])->
     Device = db_name(User#user.name),
     First = ets:first(Device),
-    MessageIds = get_sent_timeline_ids(Device, Count, First, [First]),
+    MessageIds = util:get_timeline_ids(Device, Count, First, [First]),
     lists:map(fun(Id) -> [Msg] = ets:lookup(Device, Id), Msg end, MessageIds);
 
 handle_request(get_latest_message, [User])->
@@ -156,19 +163,9 @@ handle_request(get_latest_message, [User])->
 %% @doc local functions.
 %%
 
-get_sent_timeline_ids(Device, Count, Before, Result)->
-    if
-	length(Result) >= Count -> lists:reverse(Result);
-	true -> case ets:next(Device, Before) of
-		    '$end_of_table' -> lists:reverse(Result);
-		    Id -> get_sent_timeline_ids(Device, Count, Id, 
-						   [Id | Result])
-		end
-    end.
-
 dets_info(UserName)->
     DiscName = list_to_atom(atom_to_list(UserName) ++ "_Disk"),
-    FileName = "/usr/local/message_box/db/" ++ atom_to_list(UserName),
+    FileName = ?DB_DIR ++ atom_to_list(UserName),
     {DiscName, FileName}.
 
 get_max_id(UserName)->
@@ -181,18 +178,6 @@ get_max_id(UserName)->
 get_message_id(UserId, Id)->
     FormattedUserId = util:formatted_number(UserId, 9),
     FormattedId = util:formatted_number(abs(Id), 9),
-    string:concat(FormattedUserId, FormattedId).
+    list_to_integer(string:concat(FormattedUserId, FormattedId)).
 
 db_name(UserName)-> UserName.
-
-%%
-%% test
-%%
-
-get_sent_timeline_test(Count) ->
-    user_db:start(),
-    Pid = message_db:start(shin),
-    Timeline = message_db:get_sent_timeline(Pid, Count),
-    io:format("~p~n", [Timeline]),
-    message_db:stop(Pid),
-    user_db:stop().

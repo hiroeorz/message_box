@@ -2,7 +2,7 @@
 %% Description : utilities used by other module
 
 -module(util).
--export([formatted_number/2, formatted_number/3]).
+-export([formatted_number/2, formatted_number/3, get_timeline_ids/4]).
 
 formatted_number(Num, Len)->
     formatted_number(Num, Len, "0").
@@ -23,3 +23,12 @@ add_string(before, Len, EmptyChar, Result)->
 	    add_string(before, Len, EmptyChar, NewResult)
     end.
 	    
+get_timeline_ids(Device, Count, Before, Result)->
+    if
+	length(Result) >= Count -> lists:reverse(Result);
+	true -> case ets:next(Device, Before) of
+		    '$end_of_table' -> lists:reverse(Result);
+		    Id -> get_timeline_ids(Device, Count, Id, 
+					   [Id | Result])
+		end
+    end.

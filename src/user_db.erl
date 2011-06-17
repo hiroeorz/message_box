@@ -8,7 +8,7 @@
 -export([start/0, stop/0, loop/1,
 	 call/2, reply/3, 
 	 add_user/1, update_user/1, delete_user/1, lookup_id/1, lookup_name/1,
-	 map_do/1]).
+	 map_do/1, save_pid/2, get_pid/1]).
 
 -define(USER_DB_FILENAME, "./db/user_db").
 
@@ -25,12 +25,7 @@ start() ->
 
 add_user(Name)->
     Status = true,
-    NextUserId = case ets:last(userRam) of
-		     '$end_of_table' -> 1;
-		     UserId -> UserId + 1
-		 end,
-
-    call(add_user, [NextUserId, Name, Status]).
+    call(add_user, [Name, Status]).
 
 update_user(#user{id=_UserID, name=_UserName, status=_Status} = User)->
     call(update_user, [User]).
@@ -46,6 +41,12 @@ lookup_name(Name)->
 
 map_do(Fun) ->
     call(map_do, [Fun]).
+
+save_pid(Id, Pid) ->
+    call(save_pid, [Id, Pid]).
+
+get_pid(UserName_OR_Id)  ->
+    reference_call(get_pid, [UserName_OR_Id]).
 
 %%
 %% initial setup functions.
@@ -122,33 +123,31 @@ loop(State)->
 %% server handlers.
 %%
 
-handle_request(add_user, [Id, Name, Status])->
-    User = #user{id=Id, name=Name, status=Status},
+handle_request(add_user, [Name, Status])->
+    NextUserId = case ets:last(userRam) of
+		     '$end_of_table' -> 1;
+		     UserId -> UserId + 1
+		 end,
+
+    User = #user{id=NextUserId, name=Name, status=Status},
     ets:insert(userRam, User),
     dets:insert(userDisk, User),
-    ok;
+    {ok, User};
 
 handle_request(update_user, [User])->
     ets:insert(userRam, User),
     dets:insert(userDisk, User),
-    ok;
+    {ok, User};
 
 handle_request(delete_user, [Id])->
     ets:delete(userRam, Id),
     dets:delete(userDisk, Id);
 
 handle_request(lookup_id, [Id])->
-    case ets:lookup(userRam, Id) of
-	[] -> {error, not_found};
-	[User] -> {ok, User}
-    end;
+    get_user_by_id(Id);
 
-handle_request(lookup_name, [Name])->    
-    Pattern = #user{id='$1', name=Name, status='$2'},
-    case ets:match(userRam, Pattern) of
-	[]-> {error, not_found};
-	[[UserId, _Status]] -> lookup_id(UserId)
-    end;
+handle_request(lookup_name, [Name])->
+    get_user_by_name(Name);
 
 handle_request(map_do, [Fun]) ->
     case ets:first(userRam) of
@@ -158,11 +157,41 @@ handle_request(map_do, [Fun]) ->
 	    [User] = ets:lookup(userRam, First),
 	    Fun(User),
 	    map_do(Fun, First)
-    end.
+    end;
+
+handle_request(save_pid, [Id, Pid])->
+    [User] = ets:lookup(userRam, Id),
+    UpdatedUser = User#user{pid=Pid},
+    ets:insert(userRam, UpdatedUser),
+    dets:insert(userDisk, UpdatedUser),
+    ok;
+
+handle_request(get_pid, [UserName]) when is_atom(UserName) ->
+    {ok, User} = get_user_by_name(UserName),
+    User#user.pid;
+
+handle_request(get_pid, [UserId]) when is_integer(UserId) ->
+    {ok, User} = get_user_by_id(UserId),
+    User#user.pid.
+
+
 
 %%
 %% local functions.
 %%
+
+get_user_by_name(Name) ->
+    Pattern = #user{id='$1', name=Name, status='_', pid='_'},
+    case ets:match(userRam, Pattern) of
+	[]-> {error, not_found};
+	[[UserId]] -> get_user_by_id(UserId)
+    end.
+
+get_user_by_id(Id) ->
+    case ets:lookup(userRam, Id) of
+	[] -> {error, not_found};
+	[User] -> {ok, User}
+    end.
 
 map_do(Fun, Entry) ->
     case ets:next(userRam, Entry) of
