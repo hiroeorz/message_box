@@ -62,8 +62,11 @@ get_message(Id)->
     {UserId, _Rest} = string:to_integer(string:substr(IdStr, 1, 
 						      ?USER_ID_LENGTH)),
     {ok, User} = user_db:lookup_id(UserId),
-    UserPid = user_db:get_pid(User#user.name),
-    get_message(UserPid, Id).
+    case user_db:get_pid(User#user.name) of
+	{ok, UserPid} -> 
+	    get_message(UserPid, Id);
+	Other -> Other
+    end.
 
 get_message(Pid, Id)->
     reference_call(Pid, get_message, [Id]).

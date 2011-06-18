@@ -5,3 +5,8 @@
 	       status = enabled, %atom()
 	       pid,              %atom()
 	       name}).           %term()
+
+
+-record(follow, {id,               %int()
+		 datetime}).           %term()
+

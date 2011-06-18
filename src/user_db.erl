@@ -167,14 +167,16 @@ handle_request(save_pid, [Id, Pid])->
     ok;
 
 handle_request(get_pid, [UserName]) when is_atom(UserName) ->
-    {ok, User} = get_user_by_name(UserName),
-    User#user.pid;
+    case get_user_by_name(UserName) of
+	{ok, User} -> {ok, User#user.pid};
+	Other -> Other
+    end;
 
 handle_request(get_pid, [UserId]) when is_integer(UserId) ->
-    {ok, User} = get_user_by_id(UserId),
-    User#user.pid.
-
-
+    case get_user_by_id(UserId) of
+	{ok, User} -> {ok, User#user.pid};
+	Other -> Other
+    end.
 
 %%
 %% local functions.
