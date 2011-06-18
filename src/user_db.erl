@@ -7,7 +7,8 @@
 -export([init/1]).
 -export([start/0, stop/0, loop/1,
 	 call/2, reply/3, 
-	 add_user/1, update_user/1, delete_user/1, lookup_id/1, lookup_name/1,
+	 add_user/1, update_user/1, delete_user/1, 
+	 lookup_id/1, lookup_name/1, lookup_pid/1,
 	 map_do/1, save_pid/2, get_pid/1]).
 
 -define(USER_DB_FILENAME, "./db/user_db").
@@ -38,6 +39,9 @@ lookup_id(Id)->
 
 lookup_name(Name)->
     reference_call(lookup_name, [Name]).
+
+lookup_pid(Pid) ->
+    reference_call(lookup_pid, [Pid]).
 
 map_do(Fun) ->
     call(map_do, [Fun]).
@@ -149,6 +153,9 @@ handle_request(lookup_id, [Id])->
 handle_request(lookup_name, [Name])->
     get_user_by_name(Name);
 
+handle_request(lookup_pid, [Pid])->
+    get_user_by_pid(Pid);
+
 handle_request(map_do, [Fun]) ->
     case ets:first(userRam) of
 	'$end_of_table' ->
@@ -181,6 +188,13 @@ handle_request(get_pid, [UserId]) when is_integer(UserId) ->
 %%
 %% local functions.
 %%
+
+get_user_by_pid(Pid) ->
+    Pattern = #user{id='$1', name='_', status='_', pid=Pid},
+    case ets:match(userRam, Pattern) of
+	[]-> {error, not_found};
+	[[UserId]] -> get_user_by_id(UserId)
+    end.
 
 get_user_by_name(Name) ->
     Pattern = #user{id='$1', name=Name, status='_', pid='_'},

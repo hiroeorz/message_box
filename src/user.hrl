@@ -7,6 +7,9 @@
 	       name}).           %term()
 
 
--record(follow, {id,               %int()
-		 datetime}).           %term()
+-record(follower, {id,           %int()
+		   datetime}).   %term()
+
+-record(follow, {id,           %int()
+		 datetime}).   %term()
 

@@ -1,13 +1,13 @@
 %% File : follow_db.erl
 %% Description : user follow relationship database.
 
--module(follow_db).
+-module(follower_db).
 -include("message.hrl").
 -include("user.hrl").
 
 -export([init/1]).
 -export([start/1, stop/1]).
--export([save_follow_user/2, get_follow_ids/1, map_do/2]).
+-export([save_follower/2, get_follower_ids/1, map_do/2]).
 
 -define(DB_DIR, "./db/").
 
@@ -30,12 +30,12 @@ init(UserName) ->
     loop(User).
 
 create_tables(Device)->  
-    ets:new(Device, [ordered_set, named_table, {keypos, #follow.id}]),
+    ets:new(Device, [ordered_set, named_table, {keypos, #follower.id}]),
     {DiscName, FileName} = dets_info(Device),
-    dets:open_file(DiscName, [{file, FileName}, {keypos, #follow.id}]).
+    dets:open_file(DiscName, [{file, FileName}, {keypos, #follower.id}]).
 
 restore_table(Device)->
-    Insert = fun(#follow{id=_Id, datetime=_DateTime} = Message)->
+    Insert = fun(#follower{id=_Id, datetime=_DateTime} = Message)->
 		     ets:insert(Device, Message),
 		     continue
 	     end,
@@ -51,10 +51,10 @@ close_tables(Device) ->
 %% @doc export functions
 %%
 
-save_follow_user(Pid, Id) ->
-    call(Pid, save_follow_user, [Id]).
+save_follower(Pid, Id) ->
+    call(Pid, save_follower, [Id]).
 
-get_follow_ids(Pid) ->
+get_follower_ids(Pid) ->
     reference_call(Pid, get_follower_ids, []).
 
 map_do(Pid, Fun) ->
@@ -111,8 +111,8 @@ loop(User) ->
 %% @doc server handlers
 %%
 
-handle_request(save_follow_user, [User, Id]) ->
-    Follower = #follow{id=Id, datetime={date(), time()}},
+handle_request(save_follower, [User, Id]) ->
+    Follower = #follower{id=Id, datetime={date(), time()}},
     
     case is_following(User, Id) of
 	true -> {error, already_following};
@@ -135,7 +135,7 @@ handle_request(map_do, [User, Fun]) ->
 	    map_do(Device, Fun, First)
     end;
 
-handle_request(get_follow_ids, [User]) ->
+handle_request(get_follower_ids, [User]) ->
     Device = db_name(User#user.name),
     case ets:first(Device) of
 	'$end_of_table' -> [];
@@ -161,12 +161,12 @@ is_following(User, Id) ->
     end.    
 
 dets_info(Device)->
-    DiscName = list_to_atom(atom_to_list(Device) ++ "_Follow_Disk"),
+    DiscName = list_to_atom(atom_to_list(Device) ++ "_Follower_Disk"),
     FileName = ?DB_DIR ++ atom_to_list(Device),
     {DiscName, FileName}.
 
 db_name(UserName)-> 
-    list_to_atom(atom_to_list(UserName) ++ "_follow").
+    list_to_atom(atom_to_list(UserName) ++ "_follower").
 
 map_do(Device, Fun, Entry) ->
     case ets:next(Device, Entry) of

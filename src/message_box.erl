@@ -14,6 +14,7 @@ init() ->
     user_db:start(),
     user_manager:start(),
     user_manager:start_all_users(),
+    process_flag(trap_exit, true),
     loop({date()}).
 
 stop() ->
@@ -35,6 +36,9 @@ send_message(Id, Message) ->
 %%
 %% @doc remote call functions.
 %%
+
+call(stop, Args)->
+    ?MODULE ! {request, self(), stop, Args};
 
 call(Name, Args)->
     Pid = whereis(?MODULE),
@@ -59,7 +63,7 @@ loop({_StartTime}=State) ->
     Pid = self(),
     receive
 	{request, From, stop, _Args} ->
-	    reply(From, Pid, {stop, normal});
+	    handle_stop([From]);
 
 	{request, From, Name, Args} ->
 	    Result = handle_request(Name, Args),
@@ -94,3 +98,6 @@ handle_request(create_user, [UserName]) ->
 handle_request(send_message, [Id, Message]) ->
     m_user:send_message(Id, Message).
 
+handle_stop([From]) ->
+    io:format("~p stopped from ~p~n", [?MODULE, From]),
+    exit(normal).

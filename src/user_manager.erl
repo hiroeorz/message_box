@@ -51,7 +51,10 @@ loop({_Count}=State) ->
 
 	{'EXIT', ExitPid, Reason} ->
 	    case Reason of
-		normal -> ok;
+		normal -> 
+		    io:format("~p: ~p is shutdown. Reason:~p~n", 
+			      [?MODULE, ExitPid, Reason]),
+		    restart_user(ExitPid);
 		_Other -> 
 		    io:format("~p: ~p is shutdown. Reason:~p~n", 
 			      [?MODULE, ExitPid, Reason])
@@ -82,3 +85,10 @@ handle_stop([From]) ->
     exit(normal).
     
 
+restart_user(Pid) ->
+    case user_db:lookup_pid(Pid) of
+	{ok, User} ->
+	    m_user:start(User#user.name);
+	Other -> Other
+    end.
+	    
