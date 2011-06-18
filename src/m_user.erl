@@ -142,7 +142,7 @@ handle_request(send_message,
     case message_db:save_message(MessageDB_Pid, Text) of
 	{ok, MessageId} ->
 	    Fun1 = fun(Follower) ->
-			   m_user:save_to_home(Follower#follower.id, MessageId), 
+			   m_user:save_to_home(Follower#follower.id, MessageId),
 			   io:format("sent: ~p to ~p~n", 
 				     [MessageId, Follower#follower.id])
 		  end,
