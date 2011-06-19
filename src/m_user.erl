@@ -142,7 +142,7 @@ handle_request(latest_message, [{User, _}]) ->
     message_db:get_latest_message(User#user.name);
 
 handle_request(send_message, 
-	       [{_, MessageDB_Pid, _, FollowerDB_Pid, _}, Text]) ->
+	       [{_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, _}, Text]) ->
     case message_db:save_message(MessageDB_Pid, Text) of
 	{ok, MessageId} ->
 	    Fun1 = fun(Follower) ->
@@ -151,7 +151,8 @@ handle_request(send_message,
 				     [MessageId, Follower#follower.id])
 		  end,
 	    Fun2 = fun(Follower) -> spawn(fun() -> Fun1(Follower) end) end,
-	    follower_db:map_do(FollowerDB_Pid, Fun2);
+	    follower_db:map_do(FollowerDB_Pid, Fun2),
+	    home_db:save_message_id(HomeDB_Pid, MessageId);
 	Other -> Other
     end;
 
