@@ -12,14 +12,36 @@
 	 map_do/1, save_pid/2, get_pid/1]).
 
 %%
-%% spawn remote database process.
+%% initial setup functions.
 %%
 
 start() ->
-    register(?MODULE, spawn(?MODULE, init, [?USER_DB_FILENAME])).
+    register(?MODULE, spawn_link(?MODULE, init, [?USER_DB_FILENAME])).
+
+init(FileName)->
+    process_flag(trap_exit, true),
+    create_tables(FileName),
+    restore_table(),
+    loop(ok).
+
+create_tables(FileName) ->
+    ets:new(userRam, [named_table, {keypos, #user.id}]),
+    dets:open_file(userDisk, [{file, FileName}, {keypos, #user.id}]).
+
+close_tables()->
+    ets:delete(userRam),
+    dets:close(userDisk).
+
+restore_table()->
+    Insert = fun(#user{id=_UserID, name=_UserName, status=_Status} = User)->
+		     ets:insert(userRam, User),
+		     continue
+	     end,
+    dets:traverse(userDisk, Insert).
+
 
 %%
-%% client functions.
+%% export functions.
 %%
 
 add_user(Name)->
@@ -49,30 +71,6 @@ save_pid(Id, Pid) ->
 
 get_pid(UserName_OR_Id)  ->
     reference_call(get_pid, [UserName_OR_Id]).
-
-%%
-%% initial setup functions.
-%%
-
-init(FileName)->
-    create_tables(FileName),
-    restore_table(),
-    loop(ok).
-
-create_tables(FileName) ->
-    ets:new(userRam, [named_table, {keypos, #user.id}]),
-    dets:open_file(userDisk, [{file, FileName}, {keypos, #user.id}]).
-
-close_tables()->
-    ets:delete(userRam),
-    dets:close(userDisk).
-
-restore_table()->
-    Insert = fun(#user{id=_UserID, name=_UserName, status=_Status} = User)->
-		     ets:insert(userRam, User),
-		     continue
-	     end,
-    dets:traverse(userDisk, Insert).
 
 %%
 %% remote call functions.
@@ -115,15 +113,26 @@ loop(State)->
 	    reply(From, Pid, Result),
 	    loop(State);
 
-	{stop, From}->
-	    reply(From, Pid, close_tables());
-	_Other->
-	    reply(error, Pid, unknownMessage)
+	{stop, From}-> handle_stop([From, normal]);
+
+	{'EXIT', ExitPid, from_root} -> handle_stop([ExitPid, from_root]);
+
+	{'EXIT', ExitPid, Reason} ->
+	    io:format("~p exit received from ~p Reason:~p~n", 
+		      [?MODULE, ExitPid, Reason]),
+	    loop(State);
+
+	_Other-> reply(error, Pid, unknownMessage)
     end.
 
 %%
 %% server handlers.
 %%
+
+handle_stop([From, Reason]) ->
+    io:format("~p stopped from ~p~n", [?MODULE, From]),
+    close_tables(),
+    exit(Reason).
 
 handle_request(add_user, [Name, Status])->
     NextUserId = case ets:last(userRam) of

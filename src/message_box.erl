@@ -86,6 +86,10 @@ loop({_StartTime}=State) ->
 %% @doc server handlers
 %%
 
+handle_stop([From]) ->
+    io:format("~p stopped from ~p~n", [?MODULE, From]),
+    exit(from_root).
+
 handle_request(get_message, [MessageId]) ->
     message_db:get_message(MessageId);
 
@@ -98,6 +102,3 @@ handle_request(create_user, [UserName]) ->
 handle_request(send_message, [Id, Message]) ->
     m_user:send_message(Id, Message).
 
-handle_stop([From]) ->
-    io:format("~p stopped from ~p~n", [?MODULE, From]),
-    exit(normal).

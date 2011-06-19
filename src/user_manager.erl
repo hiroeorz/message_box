@@ -49,16 +49,20 @@ loop({_Count}=State) ->
 	    reply(From, Pid, Result),
 	    loop(State);
 
+	{'EXIT', ExitPid, normal} ->
+	    io:format("~p: ~p is shutdown. Reason:~p~n", 
+		      [?MODULE, ExitPid, normal]),
+	    loop(State);
+
+	{'EXIT', ExitPid, from_root} ->
+	    io:format("~p: ~p is shutdown. Reason:~p~n", 
+		      [?MODULE, ExitPid, from_root]),
+	    exit(from_root);
+
 	{'EXIT', ExitPid, Reason} ->
-	    case Reason of
-		normal -> 
-		    io:format("~p: ~p is shutdown. Reason:~p~n", 
-			      [?MODULE, ExitPid, Reason]),
-		    restart_user(ExitPid);
-		_Other -> 
-		    io:format("~p: ~p is shutdown. Reason:~p~n", 
-			      [?MODULE, ExitPid, Reason])
-	    end,
+	    io:format("~p: ~p is shutdown. Reason:~p~n", 
+		      [?MODULE, ExitPid, Reason]),
+	    restart_user(ExitPid),
 	    loop(State);
 
 	Other->
