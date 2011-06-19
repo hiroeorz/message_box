@@ -7,14 +7,22 @@ BEAMDIR=./ebin
 DBDIR=./db
 APP_NAME=message_box
 
-all: 
-	@ mkdir -p $(BEAMDIR) ;
-	@ mkdir -p $(DBDIR) ;
-	@ mkdir -p $(LOGDIR) ;
-	@ $(ERLC) $(ERLCFLAGS) $(BEAMDIR) $(SRCDIR)/*.erl ;
+all: clean compile
+
+compile:
+	@./rebar compile
+
+xref:
+	@./rebar xref
+
 clean: 
-	@ rm -rf $(BEAMDIR)/*.beam;
-	@ rm -rf erl_crush.dump
+	@ ./rebar clean
+
+eunit:
+	@./rebar eunit
+
+edoc:
+	@./rebar doc
 
 cleardata:
 	@ rm -rf $(DBDIR)
