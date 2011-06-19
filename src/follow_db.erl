@@ -9,8 +9,6 @@
 -export([start/1, stop/1]).
 -export([save_follow_user/2, get_follow_ids/1, map_do/2]).
 
--define(DB_DIR, "./db/").
-
 %%
 %% @doc initial setup functions
 %%

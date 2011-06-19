@@ -10,10 +10,6 @@
 	 save_message/2, get_message/1, get_message/2, get_latest_message/1,
 	 get_sent_timeline/2]).
 
--define(DB_DIR, "./db/").
--define(MESSAGE_ID_LENGTH, 18).
--define(USER_ID_LENGTH, 9).
-
 %%
 %% @doc initial setup functions
 %%
@@ -58,13 +54,13 @@ save_message(Pid, Text)->
     call(Pid, save_message, [Text]).
 
 get_message(Id)->
-    IdStr = util:formatted_number(Id, ?MESSAGE_ID_LENGTH),
-    {UserId, _Rest} = string:to_integer(string:substr(IdStr, 1, 
-						      ?USER_ID_LENGTH)),
-    {ok, User} = user_db:lookup_id(UserId),
-    case user_db:get_pid(User#user.name) of
-	{ok, UserPid} -> 
-	    get_message(UserPid, Id);
+    case util:get_user_from_message_id(Id) of
+	{ok, User} ->
+	    case user_db:get_pid(User#user.name) of
+		{ok, UserPid} -> 
+		    get_message(UserPid, Id);
+		Other -> Other
+	    end;
 	Other -> Other
     end.
 
@@ -131,7 +127,8 @@ loop(User) ->
 handle_request(save_message, [User, Text])->
     Id = get_max_id(User#user.name) - 1,
     MessageId = get_message_id(User#user.id, Id),
-    Message = #message{id = Id, message_id = MessageId, text = Text},
+    Message = #message{id = Id, message_id = MessageId, text = Text, 
+		       datetime={date(), time()}},
 
     Device = db_name(User#user.name),
     {DiscName, _FileName} = dets_info(Device),
@@ -140,18 +137,28 @@ handle_request(save_message, [User, Text])->
     {ok, MessageId};
 
 handle_request(get_message, [User, MessageId])->
-    MessagePattern = #message{id='$1', message_id=MessageId, text='$2'},
+    MessagePattern = #message{id='$1', message_id=MessageId, text='_', 
+			      datetime='_'},
     Device = db_name(User#user.name),
     case ets:match(Device, MessagePattern) of
 	[] -> {error, not_found};
-	[[_Id, Text]] -> {ok, Text}
+	[[Id]] -> 
+	    case ets:lookup(Device, Id) of
+		[Message] -> {ok, Message};
+		Other -> {error, Other}
+	    end
     end;
 
 handle_request(get_sent_timeline, [User, Count])->
     Device = db_name(User#user.name),
     First = ets:first(Device),
-    MessageIds = util:get_timeline_ids(Device, Count, First, [First]),
-    lists:map(fun(Id) -> [Msg] = ets:lookup(Device, Id), Msg end, MessageIds);
+    case ets:first(Device) of
+	'$end_of_table' -> [];
+	First ->
+	    MessageIds = util:get_timeline_ids(Device, Count, First, [First]),
+	    lists:map(fun(Id) -> [Msg] = ets:lookup(Device, Id), Msg end, 
+		      MessageIds)
+    end;
 
 handle_request(get_latest_message, [User])->
     Device = db_name(User#user.name),

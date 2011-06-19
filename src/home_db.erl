@@ -9,8 +9,6 @@
 -export([start/1, stop/1]).
 -export([save_message_id/2, get_timeline/2]).
 
--define(DB_DIR, "./db/").
-
 %%
 %% @doc initial setup functions
 %%
@@ -61,21 +59,21 @@ get_timeline(Pid, Count) ->
 %% @doc remote call functions.
 %%
 
-call(Pid, Name, Args)->
+call(Pid, Name, Args) ->
     Pid ! {request, self(), Name, Args},
     receive
 	{Pid, reply, Result} -> Result
     after 20000 -> {error, timeout}
     end.
 
-reference_call(Pid, Name, Args)->
+reference_call(Pid, Name, Args) ->
     Pid ! {ref_request, self(), Name, Args},
     receive
 	{Pid, reply, Result} -> Result
     after 20000 -> {error, timeout}
     end.
 
-reply(To, Pid, Result)->
+reply(To, Pid, Result) ->
     To ! {Pid, reply, Result}.
 
 loop(User) ->
@@ -119,9 +117,43 @@ handle_request(save_message_id, [User, MessageId])->
 
 handle_request(get_timeline, [User, Count])->
     Device = db_name(User#user.name),
-    First = ets:first(Device),
-    MessageIds = util:get_timeline_ids(Device, Count, First, [First]),
-    lists:map(fun(Id) -> Id end, MessageIds).
+    Pid = self(),
+
+    MessageIds = 
+	case ets:first(Device) of
+	    '$end_of_table' -> [];
+	    First -> util:get_timeline_ids(Device, Count, First, [First])
+	end,
+
+    Fun = fun(Id) ->
+		  [MessageIndex] = ets:lookup(Device, Id),
+		  MessageId = MessageIndex#message_index.message_id,
+		  
+		  Result = 
+		      case util:get_user_from_message_id(MessageId) of
+			  {ok, FollowerUser} ->
+			      m_user:get_message(FollowerUser#user.id, 
+						 MessageId);
+			  Other -> {error, {Other, {not_found, MessageId}}}
+		      end,
+		  Pid ! {message_reply, Result}
+	  end,
+    lists:map(fun(Id) -> spawn(fun() -> Fun(Id) end) end, MessageIds),
+    MessageList = collect_loop(Pid, length(MessageIds), []),
+    lists:sort(fun(A, B) -> A#message.datetime > B#message.datetime end, 
+	       MessageList).
+
+collect_loop(Pid, Count, Result) ->
+    if length(Result) >= Count -> Result;
+       true ->
+	    receive
+		{message_reply, {ok, NewMessage}} ->
+		    collect_loop(Pid, Count, [NewMessage | Result]);
+		{message_reply, _Other} ->
+		    collect_loop(Pid, Count, Result)
+	    after 2000 -> Result
+	    end
+    end.
 
 %%
 %% @doc local functions.

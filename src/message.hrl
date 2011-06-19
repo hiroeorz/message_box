@@ -3,7 +3,8 @@
 
 -record(message, {id,         %% int()
 		  message_id, %% int()
-		  text}).     %% string()
+		  text,       %% string()
+		 datetime}). %%      
 
 -record(message_index, {id,           %% int()
 			message_id}). %% int()

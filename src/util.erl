@@ -2,7 +2,15 @@
 %% Description : utilities used by other module
 
 -module(util).
--export([formatted_number/2, formatted_number/3, get_timeline_ids/4]).
+-include("user.hrl").
+-export([get_user_from_message_id/1, 
+	 formatted_number/2, formatted_number/3, get_timeline_ids/4]).
+
+get_user_from_message_id(MessageId) ->
+    IdStr = util:formatted_number(MessageId, ?MESSAGE_ID_LENGTH),
+    {UserId, _Rest} = string:to_integer(string:substr(IdStr, 1, 
+						      ?USER_ID_LENGTH)),
+    user_db:lookup_id(UserId).
 
 formatted_number(Num, Len)->
     formatted_number(Num, Len, "0").

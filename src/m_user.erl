@@ -108,19 +108,23 @@ loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid}=State) ->
 
 	{'EXIT', MessageDB_Pid, Reason} ->
 	    io:format("~p: message_db process(~p) is shutdown. reason:~p~n", 
-		      [?MODULE, MessageDB_Pid, Reason]);
+		      [?MODULE, MessageDB_Pid, Reason]),
+	    exit(Reason);
 
 	{'EXIT', HomeDB_Pid, Reason} ->
 	    io:format("~p: home_db process(~p) is shutdown. reason:~p~n", 
-		      [?MODULE, HomeDB_Pid, Reason]);
+		      [?MODULE, HomeDB_Pid, Reason]),
+	    exit(Reason);
 
 	{'EXIT', FollowerDB_Pid, Reason} ->
 	    io:format("~p: follower_db process(~p) is shutdown. reason:~p~n", 
-		      [?MODULE, FollowerDB_Pid, Reason]);
+		      [?MODULE, FollowerDB_Pid, Reason]),
+	    exit(Reason);
 
 	{'EXIT', FollowDB_Pid, Reason} ->
 	    io:format("~p: follower_db process(~p) is shutdown. reason:~p~n", 
-		      [?MODULE, FollowDB_Pid, Reason]);
+		      [?MODULE, FollowDB_Pid, Reason]),
+	    exit(Reason);
 
 	{'EXIT', ExitPid, _Reason} ->
 	    io:format("~p: manager process(~p) is shutdown.~n", 

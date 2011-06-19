@@ -11,8 +11,6 @@
 	 lookup_id/1, lookup_name/1, lookup_pid/1,
 	 map_do/1, save_pid/2, get_pid/1]).
 
--define(USER_DB_FILENAME, "./db/user_db").
-
 %%
 %% spawn remote database process.
 %%
@@ -172,6 +170,12 @@ handle_request(save_pid, [Id, Pid])->
     ets:insert(userRam, UpdatedUser),
     dets:insert(userDisk, UpdatedUser),
     ok;
+
+handle_request(get_pid, [UserName]) when is_list(UserName) ->
+    case get_user_by_name(list_to_atom(UserName)) of
+	{ok, User} -> {ok, User#user.pid};
+	Other -> Other
+    end;
 
 handle_request(get_pid, [UserName]) when is_atom(UserName) ->
     case get_user_by_name(UserName) of
