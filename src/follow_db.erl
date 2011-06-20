@@ -7,7 +7,7 @@
 
 -export([init/1]).
 -export([start/1, stop/1]).
--export([save_follow_user/2, get_follow_ids/1, map_do/2]).
+-export([save_follow_user/2, get_follow_ids/1, map_do/2, is_follow/2]).
 
 %%
 %% @doc initial setup functions
@@ -57,6 +57,9 @@ get_follow_ids(Pid) ->
 
 map_do(Pid, Fun) ->
     call(Pid, map_do, [Fun]).
+
+is_follow(Pid, UserId) ->
+    reference_call(Pid, is_follow, [UserId]).
 
 %%
 %% @doc remote call functions.
@@ -138,9 +141,15 @@ handle_request(get_follow_ids, [User]) ->
     case ets:first(Device) of
 	'$end_of_table' -> [];
 	First -> collect_id(Device, First, [First])
-    end.
-    
+    end;
 
+handle_request(is_follow, [User, FollowId]) ->
+    Device = db_name(User#user.name),
+    case ets:lookup(Device, FollowId) of
+	[_FollowingUser] -> true;
+	[] -> false
+    end.
+	    
 %%
 %% @doc local functions.
 %%

@@ -6,8 +6,8 @@
 -export([init/1]).
 -export([start/1, stop/1]).
 -export([send_message/2, get_message/2, get_sent_timeline/2, 
-	 get_home_timeline/2, save_to_home/2, 
-	 follow/2, add_follower/2, get_follower_ids/1,
+	 get_home_timeline/2, save_to_home/2, save_to_home/3,
+	 follow/2, add_follower/2, get_follower_ids/1, is_follow/2,
 	 save_to_mentions/2]).
 
 -define(USER_MANAGER, user_manager).
@@ -51,7 +51,10 @@ get_home_timeline(UserName_OR_Id, Count) ->
     reference_call(UserName_OR_Id, get_home_timeline, [Count]).
 
 save_to_home(UserName_OR_Id, MessageId) ->
-    call(UserName_OR_Id, save_to_home, [MessageId]).    
+    save_to_home(UserName_OR_Id, MessageId, {false, nil}).
+
+save_to_home(UserName_OR_Id, MessageId, IsReplyText) ->
+    call(UserName_OR_Id, save_to_home, [MessageId, IsReplyText]).    
 
 follow(UserName_OR_Id, UserId) ->
     call(UserName_OR_Id, follow, [UserId]).
@@ -64,6 +67,9 @@ get_follower_ids(UserName_OR_Id) ->
 
 save_to_mentions(UserName_OR_Id, MessageId) ->
     call(UserName_OR_Id, save_to_mentions, [MessageId]).    
+
+is_follow(UserName_OR_Id, UserId) ->
+    reference_call(UserName_OR_Id, is_follow, [UserId]).
 
 %%
 %% @doc remote call functions.
@@ -95,7 +101,7 @@ reply(To, Pid, Result) ->
     To ! {Pid, reply, Result}.
 
 loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid,
-      _MentionsDB_Pid}=State) ->
+      MentionsDB_Pid}=State) ->
     Pid = self(),
     receive
 	{request, From, stop, []} ->
@@ -133,6 +139,11 @@ loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid,
 		      [?MODULE, FollowDB_Pid, Reason]),
 	    exit(Reason);
 
+	{'EXIT', MentionsDB_Pid, Reason} ->
+	    io:format("~p: follower_db process(~p) is shutdown. reason:~p~n", 
+		      [?MODULE, MentionsDB_Pid, Reason]),
+	    exit(Reason);
+
 	{'EXIT', ExitPid, _Reason} ->
 	    io:format("~p: manager process(~p) is shutdown.~n", 
 		      [?MODULE, ExitPid])
@@ -154,7 +165,8 @@ handle_request(send_message,
 	       [{_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, _, _}, Text]) ->
     case message_db:save_message(MessageDB_Pid, Text) of
 	{ok, MessageId} ->
-	    send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid),
+	    IsReplyTo = util:is_reply_text(Text),
+	    send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid, IsReplyTo),
 	    ReplyToList = util:get_reply_list(Text),
 	    send_to_replies(MessageId, ReplyToList);
 	Other -> Other
@@ -166,8 +178,19 @@ handle_request(get_sent_timeline, [{_, MessageDB_Pid, _, _, _, _}, Count]) ->
 handle_request(get_home_timeline, [{_, _, HomeDB_Pid, _, _, _}, Count]) ->
     home_db:get_timeline(HomeDB_Pid, Count);
 
-handle_request(save_to_home, [{_, _, HomeDB_Pid, _, _, _}, MessageId]) ->
-    home_db:save_message_id(HomeDB_Pid, MessageId);
+handle_request(save_to_home, [{_, _, HomeDB_Pid, _, FollowDB_Pid, _}, 
+			      MessageId, IsReplyText]) ->
+    case IsReplyText of
+	{true, _To} ->
+	    io:format("IsReplyText:~p", [IsReplyText]),
+	    FromUserId = util:get_user_id_from_message_id(MessageId),
+	    case follow_db:is_follow(FollowDB_Pid, FromUserId) of
+		true  -> home_db:save_message_id(HomeDB_Pid, MessageId);
+		false -> ok
+	    end;
+	{false, nil} ->
+	    home_db:save_message_id(HomeDB_Pid, MessageId)
+    end;
 
 handle_request(follow, [{User, _, _, _, FollowDB_Pid, _}, UserId]) ->
     case user_db:lookup_id(UserId) of
@@ -191,15 +214,19 @@ handle_request(get_message, [{_, MessageDB_Pid, _, _, _, _}, MessageId]) ->
 
 handle_request(save_to_mentions, 
 	       [{_, _, _, _, _, MentionsDB_Pid}, MessageId]) ->
-    mentions_db:save_message_id(MentionsDB_Pid, MessageId).
+    mentions_db:save_message_id(MentionsDB_Pid, MessageId);
+
+handle_request(is_follow, [{_, _, _, _, FollowDB_Pid, _}, FollowId]) ->
+    follow_db:is_follow(FollowDB_Pid, FollowId).
 
 %%
 %% @doc local functions.
 %%
 
-send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid) ->
+send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid, IsReplyTo) ->
     Fun1 = fun(Follower) ->
-		   m_user:save_to_home(Follower#follower.id, MessageId),
+		   m_user:save_to_home(Follower#follower.id, MessageId, 
+				       IsReplyTo),
 		   io:format("sent: ~p to ~p~n", 
 			     [MessageId, Follower#follower.id])
 	   end,

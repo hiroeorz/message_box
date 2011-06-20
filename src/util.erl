@@ -3,9 +3,17 @@
 
 -module(util).
 -include("user.hrl").
--export([get_user_from_message_id/1, 
+-export([get_user_from_message_id/1, get_user_id_from_message_id/1, 
 	 formatted_number/2, formatted_number/3, get_timeline_ids/4,
-	 get_reply_list/1]).
+	 get_reply_list/1, is_reply_text/1]).
+
+-define(SEPARATOR, "\s\n").
+
+get_user_id_from_message_id(MessageId) ->
+    IdStr = util:formatted_number(MessageId, ?MESSAGE_ID_LENGTH),
+    {UserId, _Rest} = string:to_integer(string:substr(IdStr, 1, 
+						      ?USER_ID_LENGTH)),
+    UserId.
 
 get_user_from_message_id(MessageId) ->
     IdStr = util:formatted_number(MessageId, ?MESSAGE_ID_LENGTH),
@@ -46,7 +54,7 @@ get_timeline_ids(Device, Count, Before, Result)->
 %% @doc create reply name list from tweet text.
 %%
 get_reply_list(Text) when is_list(Text) ->
-    Tokens = string:tokens(Text, "\s\n"),
+    Tokens = string:tokens(Text, ?SEPARATOR),
     get_reply_list(Tokens, []).
 
 get_reply_list([], List) -> lists:usort(List);
@@ -57,6 +65,18 @@ get_reply_list(Tokens, List) when is_list(Tokens) ->
 	"@" ->
 	    UserNameStr = string:sub_string(Token, 2, length(Token)),
 	    get_reply_list(Tail, [list_to_atom(UserNameStr) | List]);
-	Other ->
+	_Other ->
 	    get_reply_list(Tail, List)
+    end.
+
+is_reply_text(Text) ->
+    case string:sub_string(Text, 1, 1) of
+	"@" ->
+	    [ToToken | _Tail] = string:tokens(Text, ?SEPARATOR),
+	    case string:sub_string(ToToken, 2, length(ToToken)) of
+		"" -> {false, nil};
+		To -> {true, list_to_atom(To)}
+	    end;
+	_Other ->
+	    {false, nil}
     end.
