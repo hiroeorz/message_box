@@ -7,7 +7,8 @@
 -export([start/1, stop/1]).
 -export([send_message/2, get_message/2, get_sent_timeline/2, 
 	 get_home_timeline/2, save_to_home/2, 
-	 follow/2, add_follower/2, get_follower_ids/1]).
+	 follow/2, add_follower/2, get_follower_ids/1,
+	 save_to_mentions/2]).
 
 -define(USER_MANAGER, user_manager).
 
@@ -24,9 +25,11 @@ init(UserName) ->
     HomeDB_Pid = home_db:start(UserName),
     FollowerDB_Pid = follower_db:start(UserName),
     Follow_DB_Pid = follow_db:start(UserName),
+    MentionsDB_Pid = mentions_db:start(UserName),
 
     user_db:save_pid(User#user.id, self()),
-    loop({User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, Follow_DB_Pid}).
+    loop({User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, Follow_DB_Pid,
+	  MentionsDB_Pid}).
 
 stop(UserName) ->
     call(UserName, stop, []).
@@ -59,6 +62,9 @@ add_follower(UserName_OR_Id, UserId) ->
 get_follower_ids(UserName_OR_Id) ->
     reference_call(UserName_OR_Id, get_follower_ids, []).    
 
+save_to_mentions(UserName_OR_Id, MessageId) ->
+    call(UserName_OR_Id, save_to_mentions, [MessageId]).    
+
 %%
 %% @doc remote call functions.
 %%
@@ -88,7 +94,8 @@ reference_call(UserName_OR_Id, Name, Args)  ->
 reply(To, Pid, Result) ->
     To ! {Pid, reply, Result}.
 
-loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid}=State) ->
+loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid,
+      _MentionsDB_Pid}=State) ->
     Pid = self(),
     receive
 	{request, From, stop, []} ->
@@ -131,41 +138,38 @@ loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid}=State) ->
 		      [?MODULE, ExitPid])
     end.
 
-handle_stop({_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid}) ->
+handle_stop({_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid, 
+	    MentionsDB_Pid}) ->
     message_db:stop(MessageDB_Pid),
     home_db:stop(HomeDB_Pid),
     follower_db:stop(FollowerDB_Pid),
     follow_db:stop(FollowDB_Pid),
+    mentions_db:stop(MentionsDB_Pid),
     {stop, self()}.
 
 handle_request(latest_message, [{User, _}]) ->
     message_db:get_latest_message(User#user.name);
 
 handle_request(send_message, 
-	       [{_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, _}, Text]) ->
+	       [{_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, _, _}, Text]) ->
     case message_db:save_message(MessageDB_Pid, Text) of
 	{ok, MessageId} ->
-	    Fun1 = fun(Follower) ->
-			   m_user:save_to_home(Follower#follower.id, MessageId),
-			   io:format("sent: ~p to ~p~n", 
-				     [MessageId, Follower#follower.id])
-		  end,
-	    Fun2 = fun(Follower) -> spawn(fun() -> Fun1(Follower) end) end,
-	    follower_db:map_do(FollowerDB_Pid, Fun2),
-	    home_db:save_message_id(HomeDB_Pid, MessageId);
+	    send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid),
+	    ReplyToList = util:get_reply_list(Text),
+	    send_to_replies(MessageId, ReplyToList);
 	Other -> Other
     end;
 
-handle_request(get_sent_timeline, [{_, MessageDB_Pid, _, _, _}, Count]) ->
+handle_request(get_sent_timeline, [{_, MessageDB_Pid, _, _, _, _}, Count]) ->
     message_db:get_sent_timeline(MessageDB_Pid, Count);
 
-handle_request(get_home_timeline, [{_, _, HomeDB_Pid, _, _}, Count]) ->
+handle_request(get_home_timeline, [{_, _, HomeDB_Pid, _, _, _}, Count]) ->
     home_db:get_timeline(HomeDB_Pid, Count);
 
-handle_request(save_to_home, [{_, _, HomeDB_Pid, _, _}, MessageId]) ->
+handle_request(save_to_home, [{_, _, HomeDB_Pid, _, _, _}, MessageId]) ->
     home_db:save_message_id(HomeDB_Pid, MessageId);
 
-handle_request(follow, [{User, _, _, _, FollowDB_Pid}, UserId]) ->
+handle_request(follow, [{User, _, _, _, FollowDB_Pid, _}, UserId]) ->
     case user_db:lookup_id(UserId) of
 	{ok, FollowUser} ->
 	    follow_db:save_follow_user(FollowDB_Pid, FollowUser#user.id),
@@ -173,18 +177,44 @@ handle_request(follow, [{User, _, _, _, FollowDB_Pid}, UserId]) ->
 	Other -> Other
     end;
 
-handle_request(add_follower, [{_, _, _, FollowerDB_Pid, _}, UserId]) ->
+handle_request(add_follower, [{_, _, _, FollowerDB_Pid, _, _}, UserId]) ->
     case user_db:lookup_id(UserId) of
 	{ok, _User} -> follower_db:save_follower(FollowerDB_Pid, UserId);
 	Other -> Other
     end;
 
-handle_request(get_follower_ids, [{_, _, _, FollowerDB_Pid, _}]) ->
+handle_request(get_follower_ids, [{_, _, _, FollowerDB_Pid, _, _}]) ->
     follower_db:get_follower_ids(FollowerDB_Pid);
 
-handle_request(get_message, [{_, MessageDB_Pid, _, _, _}, MessageId]) ->
-    message_db:get_message(MessageDB_Pid, MessageId).
+handle_request(get_message, [{_, MessageDB_Pid, _, _, _, _}, MessageId]) ->
+    message_db:get_message(MessageDB_Pid, MessageId);
+
+handle_request(save_to_mentions, 
+	       [{_, _, _, _, _, MentionsDB_Pid}, MessageId]) ->
+    mentions_db:save_message_id(MentionsDB_Pid, MessageId).
 
 %%
 %% @doc local functions.
 %%
+
+send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid) ->
+    Fun1 = fun(Follower) ->
+		   m_user:save_to_home(Follower#follower.id, MessageId),
+		   io:format("sent: ~p to ~p~n", 
+			     [MessageId, Follower#follower.id])
+	   end,
+    Fun2 = fun(Follower) -> spawn(fun() -> Fun1(Follower) end) end,
+    follower_db:map_do(FollowerDB_Pid, Fun2),
+    home_db:save_message_id(HomeDB_Pid, MessageId).
+    
+send_to_replies(MessageId, ReplyToList) ->
+    case ReplyToList of
+	[] -> ok;
+	[ReplyTo | Tail] ->
+	    spawn(fun() ->
+			  m_user:save_to_mentions(ReplyTo, MessageId),
+			  send_to_replies(MessageId, Tail),
+			  io:format("reply ~p to ~p~n", [MessageId, ReplyTo])
+		  end)
+    end.
+	    

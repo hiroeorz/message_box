@@ -62,7 +62,7 @@ loop({_Count}=State) ->
 	{'EXIT', ExitPid, Reason} ->
 	    io:format("~p: ~p is shutdown. Reason:~p~n", 
 		      [?MODULE, ExitPid, Reason]),
-	    restart_user(ExitPid),
+	    %%restart_user(ExitPid),
 	    loop(State);
 
 	Other->
