@@ -5,45 +5,61 @@
 -include("message.hrl").
 -include("user.hrl").
 
--export([init/1]).
--export([start/1, stop/1]).
+-export([init/2]).
+-export([start/2, stop/1]).
 -export([save_message_id/2, get_timeline/2]).
 
 %%
 %% @doc initial setup functions
 %%
 
-start(UserName)->
-    spawn_link(?MODULE, init, [UserName]).
+start(UserName, DBPid)->
+    spawn_link(?MODULE, init, [UserName, DBPid]).
 
 stop(Pid) ->
     Pid ! {stop, self()}.
 
-init(UserName)->
+init(UserName, DBPid)->
     process_flag(trap_exit, true),
-    Device = db_name(UserName),
-    create_tables(Device),
-    restore_table(Device),
+    create_tables(UserName, DBPid),
+    restore_table(UserName, DBPid),
     {ok, User} = user_db:lookup_name(UserName),
-    loop(User).
+    loop({User, DBPid}).
 
-create_tables(Device)->  
+create_tables(UserName, DBPid)->  
+    Device = db_name(UserName),
     ets:new(Device, [ordered_set, named_table, {keypos, #message_index.id}]),
-    {DiscName, FileName} = dets_info(Device),
-    dets:open_file(DiscName, [{file, FileName}, {keypos, #message_index.id}]).
+    create_sqlite3_tables(UserName, DBPid).
 
-restore_table(Device)->
-    Insert = fun(#message_index{id=_Id, message_id=_MessageId} = Message)->
-		     ets:insert(Device, Message),
-		     continue
-	     end,
-    {DiscName, _FileName} = dets_info(Device),
-    dets:traverse(DiscName, Insert).
+restore_table(UserName, DBPid)->
+    SqlResults = sqlite3:sql_exec(DBPid,
+				  "select * from home
+                                     order by id desc limit 100"),
+    Records = parse_message_records(SqlResults),
+    Device = db_name(UserName),
+    restore_records(Device, Records).
+
+restore_records(Device, Records) ->
+    case Records of
+	[] -> ok;
+	[Record | Tail] ->
+	    ets:insert(Device, Record),
+	    restore_records(Device, Tail)
+    end.
 
 close_tables(Device)->
-    ets:delete(Device),
-    {DiscName, _FileName} = dets_info(Device),
-    dets:close(DiscName).
+    ets:delete(Device).
+
+create_sqlite3_tables(UserName, DBPid) ->
+    {DiscName, _Path} = util:db_info(UserName),
+    case lists:member(home, sqlite3:list_tables(DiscName)) of
+	true -> ok;
+	false ->
+	    sqlite3:sql_exec(DBPid, 
+			     "create table home (
+                                id INTEGER PRIMARY KEY,
+                                message_id INTEGER NOT NULL)")
+    end.
 
 %%
 %% @doc export functions
@@ -76,28 +92,29 @@ reference_call(Pid, Name, Args) ->
 reply(To, Pid, Result) ->
     To ! {Pid, reply, Result}.
 
-loop(User) ->
+loop({User, DBPid}) ->
     UserName = User#user.name,
     Pid = self(),
     receive
 	{ref_request, From, Name, Args} ->
 	    spawn(fun()->
-			  Result = handle_request(Name, [User | Args]),
+			  Result = handle_request(Name, [User, DBPid | Args]),
 			  reply(From, Pid, Result)
 		  end),
-	    loop(User);
+	    loop({User, DBPid});
 
 	{request, From, Name, Args} ->
-	    Result = handle_request(Name, [User | Args]),
+	    Result = handle_request(Name, [User, DBPid | Args]),
 	    reply(From, Pid, Result),
-	    loop(User);
+	    loop({User, DBPid});
+
 	{stop, From} ->
 	    Device = db_name(UserName),
 	    reply(From, Pid, close_tables(Device));
 
-	{'EXIT', ExitPid, _Reason} ->
-	    io:format("~p: user process(~p) is shutdown.~n", 
-		      [?MODULE, ExitPid]),
+	{'EXIT', ExitPid, Reason} ->
+	    io:format("~p: user process(~p) is shutdown(Reason:~p).~n", 
+		      [?MODULE, ExitPid, Reason]),
 	    Device = db_name(UserName),
 	    close_tables(Device)
     end.
@@ -106,24 +123,18 @@ loop(User) ->
 %% @doc server handlers
 %%
 
-handle_request(save_message_id, [User, MessageId])->
-    Id = get_max_id(User#user.name) - 1,
+handle_request(save_message_id, [User, DBPid, MessageId])->
+    Id = get_max_id(DBPid) - 1,
     MessageIndex = #message_index{id=Id, message_id=MessageId},
     Device = db_name(User#user.name),
-    {DiscName, _FileName} = dets_info(Device),
     ets:insert(Device, MessageIndex),
-    dets:insert(DiscName, MessageIndex),
+    insert_message_to_sqlite3(DBPid, MessageIndex),
     {ok, MessageId};
 
-handle_request(get_timeline, [User, Count])->
+handle_request(get_timeline, [User, DBPid, Count]) ->
     Device = db_name(User#user.name),
     Pid = self(),
-
-    MessageIds = 
-	case ets:first(Device) of
-	    '$end_of_table' -> [];
-	    First -> util:get_timeline_ids(Device, Count, First, [First])
-	end,
+    MessageIds = get_timeline_ids(Device, DBPid, Count),
 
     Fun = fun(Id) ->
 		  [MessageIndex] = ets:lookup(Device, Id),
@@ -159,18 +170,64 @@ collect_loop(Pid, Count, Result) ->
 %% @doc local functions.
 %%
 
-get_max_id(UserName) ->
-    Device = db_name(UserName),
-    case ets:first(Device) of
-	'$end_of_table' -> 0;
-	First -> First
-    end.
+%%
+%% @doc get message id list from local ets and sqlite3 database.
+%%
+get_timeline_ids(Device, DBPid, Count) ->
+    MessageIdsFromEts = 
+	case ets:first(Device) of
+	    '$end_of_table' -> [];
+	    First -> util:get_timeline_ids(Device, Count, First, [First])
+	end,
 
-dets_info(Device)->
-    DiscName = list_to_atom(atom_to_list(Device) ++ "_Home_Disk"),
-    FileName = ?DB_DIR ++ atom_to_list(Device),
-    {DiscName, FileName}.
+    if length(MessageIdsFromEts) < Count ->
+	    SqlResult = 
+		sqlite3:sql_exec(DBPid, "select * from home
+                                           where id > :id
+                                           order by id limit :limit",
+				 [{':id', lists:max(MessageIdsFromEts)},
+				  {':limit', 
+				   Count - length(MessageIdsFromEts)}]),
+	    
+	    Ids = lists:map(fun(Record) -> Record#message_index.id end,
+			    parse_message_records(SqlResult)),
+	    MessageIdsFromEts ++ Ids;
+       
+       true -> MessageIdsFromEts
+    end.    
+
+get_max_id(DBPid) ->
+    Result = sqlite3:sql_exec(DBPid, "select * from home 
+                                           order by id limit 1"),
+    
+    case parse_message_records(Result) of
+	[] -> 0;
+	[LastRecord] -> LastRecord#message_index.id
+    end.
 
 db_name(UserName)-> 
     list_to_atom(atom_to_list(UserName) ++ "_home").
 
+%%
+%% @doc parse message record from sqlite3 to erlang record.
+%%
+
+parse_message_records(Result) ->
+    [{columns, _ColumnList}, {rows, RowList}] = Result,
+    parse_message_records(RowList, []).
+
+parse_message_records(RowList, RecordList) ->
+    case RowList of
+	[] -> lists:reverse(RecordList);
+	[Row | Tail] -> 
+	    {Id, MsgId} = Row,
+	    Record = #message_index{id = Id, message_id = MsgId},
+	    parse_message_records(Tail, [Record | RecordList])
+    end.
+
+insert_message_to_sqlite3(DBPid, MessageIndex) ->
+    sqlite3:sql_exec(DBPid,
+		    "insert into home (id, message_id)
+                        values(:id, :message_id)",
+		    [{':id'        , MessageIndex#message_index.id},
+		     {':message_id', MessageIndex#message_index.message_id}]).

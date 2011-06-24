@@ -38,7 +38,7 @@ reply(To, Pid, Result)->
     To ! {Pid, reply, Result}.
 
 
-loop({_Count}=State) ->
+loop({RestartedUser}=State) ->
     Pid = self(),
     receive
 	{request, From, stop, _Args} ->
@@ -62,8 +62,17 @@ loop({_Count}=State) ->
 	{'EXIT', ExitPid, Reason} ->
 	    io:format("~p: ~p is shutdown. Reason:~p~n", 
 		      [?MODULE, ExitPid, Reason]),
-	    %%restart_user(ExitPid),
-	    loop(State);
+
+	    case user_db:lookup_pid(ExitPid) of
+		{ok, User} -> 
+		    ExitUserId = User#user.id,
+		    case RestartedUser#user.id of
+			ExitUserId -> loop(State);
+			_OtherUser -> m_user:start(User#user.name),
+				      loop({User})
+		    end;
+		_Other -> loop(State)
+	    end;
 
 	Other->
 	    io:format("~p: unkown message received: ~p~n", [?MODULE, Other]),
@@ -87,12 +96,3 @@ handle_request(start_all_users, []) ->
 handle_stop([From]) ->
     io:format("~p stopped from ~p~n", [?MODULE, From]),
     exit(normal).
-    
-
-restart_user(Pid) ->
-    case user_db:lookup_pid(Pid) of
-	{ok, User} ->
-	    m_user:start(User#user.name);
-	Other -> Other
-    end.
-	    

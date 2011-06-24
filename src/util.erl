@@ -3,9 +3,11 @@
 
 -module(util).
 -include("user.hrl").
+-include("message.hrl").
 -export([get_user_from_message_id/1, get_user_id_from_message_id/1, 
 	 formatted_number/2, formatted_number/3, get_timeline_ids/4,
-	 get_reply_list/1, is_reply_text/1]).
+	 get_reply_list/1, is_reply_text/1,
+	 db_info/1]).
 
 -define(SEPARATOR, "\s\n").
 
@@ -80,3 +82,13 @@ is_reply_text(Text) ->
 	_Other ->
 	    {false, nil}
     end.
+
+%%
+%% @doc sqlite3 database file name
+%%
+db_info(UserName)->
+    DiscName = list_to_atom(atom_to_list(UserName) ++ "_disk"),
+    FileName = atom_to_list(UserName) ++ ".db",
+    Path = ?DB_DIR ++ FileName,
+    {DiscName, Path}.
+

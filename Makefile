@@ -3,11 +3,11 @@ ERL=erl
 ERLCFLAGS=-o
 SRCDIR=src
 LOGDIR=./log
-BEAMDIR=./ebin
+BEAMDIR=./ebin ./deps/sqlite3/ebin
 DBDIR=./db
 APP_NAME=message_box
 
-all: clean compile
+all: clean compile xref
 
 compile:
 	@./rebar compile

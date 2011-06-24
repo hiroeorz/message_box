@@ -21,11 +21,15 @@ init(UserName) ->
     link(ManagerPid),
 
     {ok, User} = user_db:lookup_name(UserName),
-    MessageDB_Pid = message_db:start(UserName),
-    HomeDB_Pid = home_db:start(UserName),
+
+    {DiscName, Path} = util:db_info(UserName),
+    {ok, DBPid} = sqlite3:open(DiscName, [{file, Path}]),
+
+    MessageDB_Pid = message_db:start(UserName, DBPid),
+    HomeDB_Pid = home_db:start(UserName, DBPid),
+    MentionsDB_Pid = mentions_db:start(UserName, DBPid),
     FollowerDB_Pid = follower_db:start(UserName),
     Follow_DB_Pid = follow_db:start(UserName),
-    MentionsDB_Pid = mentions_db:start(UserName),
 
     user_db:save_pid(User#user.id, self()),
     loop({User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, Follow_DB_Pid,
@@ -144,9 +148,9 @@ loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid,
 		      [?MODULE, MentionsDB_Pid, Reason]),
 	    exit(Reason);
 
-	{'EXIT', ExitPid, _Reason} ->
-	    io:format("~p: manager process(~p) is shutdown.~n", 
-		      [?MODULE, ExitPid])
+	{'EXIT', ExitPid, Reason} ->
+	    io:format("~p: process(~p) is shutdown(Reason:~p).~n", 
+		      [?MODULE, ExitPid, Reason])
     end.
 
 handle_stop({_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid, 
@@ -162,7 +166,8 @@ handle_request(latest_message, [{User, _}]) ->
     message_db:get_latest_message(User#user.name);
 
 handle_request(send_message, 
-	       [{_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, _, _}, Text]) ->
+	       [{_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, _, _}, 
+		Text]) ->
     case message_db:save_message(MessageDB_Pid, Text) of
 	{ok, MessageId} ->
 	    IsReplyTo = util:is_reply_text(Text),
