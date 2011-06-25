@@ -29,7 +29,7 @@ init(UserName, DBPid)->
 create_tables(UserName, DBPid)->
     Device = db_name(UserName),  
     ets:new(Device, [ordered_set, named_table, {keypos, #message_index.id}]),
-    create_sqlite3_tables(UserName, DBPid).
+    create_sqlite3_tables(DBPid).
 
 restore_table(UserName, DBPid)->
     SqlResults = sqlite3:sql_exec(DBPid,
@@ -50,9 +50,8 @@ restore_records(Device, Records) ->
 close_tables(Device)->
     ets:delete(Device).
 
-create_sqlite3_tables(UserName, DBPid) ->
-    {DiscName, _Path} = util:db_info(UserName),
-    case lists:member(mentions, sqlite3:list_tables(DiscName)) of
+create_sqlite3_tables(DBPid) ->
+    case lists:member(mentions, sqlite3:list_tables(DBPid)) of
 	true -> ok;
 	false ->
 	    sqlite3:sql_exec(DBPid, 
@@ -124,7 +123,7 @@ loop({User, DBPid}) ->
 %%
 
 handle_request(save_message_id, [User, DBPid, MessageId])->
-    Id = get_max_id(User#user.name) - 1,
+    Id = get_max_id(DBPid) - 1,
     MessageIndex = #message_index{id=Id, message_id=MessageId},
     Device = db_name(User#user.name),
     ets:insert(Device, MessageIndex),

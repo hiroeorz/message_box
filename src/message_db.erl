@@ -30,11 +30,10 @@ init(UserName, DBPid)->
 create_tables(UserName, DBPid)->  
     Device = db_name(UserName),
     ets:new(Device, [ordered_set, named_table, {keypos, #message.id}]),
-    create_sqlite3_tables(UserName, DBPid).
+    create_sqlite3_tables(DBPid).
 
-create_sqlite3_tables(UserName, DBPid) ->
-    {DiscName, _Path} = util:db_info(UserName),
-    case lists:member(messages, sqlite3:list_tables(DiscName)) of
+create_sqlite3_tables(DBPid) ->
+    case lists:member(messages, sqlite3:list_tables(DBPid)) of
 	true -> ok;
 	false ->
 	    sqlite3:sql_exec(DBPid, 

@@ -8,7 +8,7 @@
 -export([send_message/2, get_message/2, get_sent_timeline/2, 
 	 get_home_timeline/2, save_to_home/2, save_to_home/3,
 	 follow/2, add_follower/2, get_follower_ids/1, is_follow/2,
-	 save_to_mentions/2]).
+	 save_to_mentions/2, get_mentions_timeline/2]).
 
 -define(USER_MANAGER, user_manager).
 
@@ -53,6 +53,9 @@ get_sent_timeline(UserName_OR_Id, Count) ->
 
 get_home_timeline(UserName_OR_Id, Count) ->
     reference_call(UserName_OR_Id, get_home_timeline, [Count]).
+
+get_mentions_timeline(UserName_OR_Id, Count) ->
+    reference_call(UserName_OR_Id, get_mentions_timeline, [Count]).
 
 save_to_home(UserName_OR_Id, MessageId) ->
     save_to_home(UserName_OR_Id, MessageId, {false, nil}).
@@ -173,7 +176,8 @@ handle_request(send_message,
 	    IsReplyTo = util:is_reply_text(Text),
 	    send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid, IsReplyTo),
 	    ReplyToList = util:get_reply_list(Text),
-	    send_to_replies(MessageId, ReplyToList);
+	    send_to_replies(MessageId, ReplyToList),
+	    {ok, MessageId};
 	Other -> Other
     end;
 
@@ -182,6 +186,10 @@ handle_request(get_sent_timeline, [{_, MessageDB_Pid, _, _, _, _}, Count]) ->
 
 handle_request(get_home_timeline, [{_, _, HomeDB_Pid, _, _, _}, Count]) ->
     home_db:get_timeline(HomeDB_Pid, Count);
+
+handle_request(get_mentions_timeline, 
+	       [{_, _, _, _, _, MentionsDB_Pid}, Count]) ->
+    mentions_db:get_timeline(MentionsDB_Pid, Count);
 
 handle_request(save_to_home, [{_, _, HomeDB_Pid, _, FollowDB_Pid, _}, 
 			      MessageId, IsReplyText]) ->

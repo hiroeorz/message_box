@@ -5,7 +5,8 @@
 -include("user.hrl").
 -export([init/0]).
 -export([start/0, stop/0]).
--export([get_message/1, create_user/1, send_message/2]).
+-export([get_message/1, create_user/1, send_message/2, follow/2,
+	 get_home_timeline/2, get_mentions_timeline/2, get_sent_timeline/2]).
 
 start() ->
     register(?MODULE, spawn(?MODULE, init, [])).
@@ -32,6 +33,18 @@ create_user(UserName) ->
 
 send_message(Id, Message) ->
     spawn_call(send_message, [Id, Message]).
+
+follow(UserId1, UserId2) ->
+    spawn_call(follow, [UserId1, UserId2]).
+
+get_home_timeline(UserId_OR_Name, Count) ->
+    spawn_call(get_home_timeline, [UserId_OR_Name, Count]).    
+
+get_mentions_timeline(UserId_OR_Name, Count) ->
+    spawn_call(get_mentions_timeline, [UserId_OR_Name, Count]).    
+
+get_sent_timeline(UserId_OR_Name, Count) ->
+    spawn_call(get_sent_timeline, [UserId_OR_Name, Count]).    
 
 %%
 %% @doc remote call functions.
@@ -100,5 +113,18 @@ handle_request(create_user, [UserName]) ->
     {ok, AssignedUser};
 
 handle_request(send_message, [Id, Message]) ->
-    m_user:send_message(Id, Message).
+    m_user:send_message(Id, Message);
+
+handle_request(follow, [UserId1, UserId2]) ->
+    m_user:follow(UserId1, UserId2);
+
+handle_request(get_home_timeline, [UserId_OR_Name, Count]) ->
+    m_user:get_home_timeline(UserId_OR_Name, Count);
+
+handle_request(get_mentions_timeline, [UserId_OR_Name, Count]) ->
+    m_user:get_mentions_timeline(UserId_OR_Name, Count);
+
+handle_request(get_sent_timeline, [UserId_OR_Name, Count]) ->
+    m_user:get_sent_timeline(UserId_OR_Name, Count).
+   
 
