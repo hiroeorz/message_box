@@ -5,7 +5,7 @@
 -include("user.hrl").
 
 -export([init/1]).
--export([start/0, stop/0, loop/1,
+-export([start/0, start/1, stop/0, loop/1,
 	 call/2, reply/3, 
 	 add_user/1, update_user/1, delete_user/1, 
 	 lookup_id/1, lookup_name/1, lookup_pid/1,
@@ -17,6 +17,9 @@
 
 start() ->
     register(?MODULE, spawn_link(?MODULE, init, [?USER_DB_FILENAME])).
+
+start(FileName) ->
+    register(?MODULE, spawn_link(?MODULE, init, [FileName])).
 
 init(FileName)->
     process_flag(trap_exit, true),
@@ -135,20 +138,27 @@ handle_stop([From, Reason]) ->
     exit(Reason).
 
 handle_request(add_user, [Name, Status])->
-    NextUserId = case ets:last(userRam) of
-		     '$end_of_table' -> 1;
-		     UserId -> UserId + 1
-		 end,
-
-    User = #user{id=NextUserId, name=Name, status=Status},
-    ets:insert(userRam, User),
-    dets:insert(userDisk, User),
-    {ok, User};
+    case get_user_by_name(Name) of
+	{ok, _User} -> {error, already_exist};
+	{error, not_found} ->
+	    NextUserId = case ets:last(userRam) of
+			     '$end_of_table' -> 1;
+			     UserId -> UserId + 1
+			 end,
+	    User = #user{id=NextUserId, name=Name, status=Status},
+	    ets:insert(userRam, User),
+	    dets:insert(userDisk, User),
+	    {ok, User}
+    end;
 
 handle_request(update_user, [User])->
-    ets:insert(userRam, User),
-    dets:insert(userDisk, User),
-    {ok, User};
+    case get_user_by_id(User#user.id) of
+	{ok, _} ->
+	    ets:insert(userRam, User),
+	    dets:insert(userDisk, User),
+	    {ok, User};
+	{error, not_found} -> {error, not_found}
+    end;
 
 handle_request(delete_user, [Id])->
     ets:delete(userRam, Id),
@@ -174,11 +184,15 @@ handle_request(map_do, [Fun]) ->
     end;
 
 handle_request(save_pid, [Id, Pid])->
-    [User] = ets:lookup(userRam, Id),
-    UpdatedUser = User#user{pid=Pid},
-    ets:insert(userRam, UpdatedUser),
-    dets:insert(userDisk, UpdatedUser),
-    ok;
+    case get_user_by_id(Id) of
+	{ok, User} ->
+	    %%[User] = ets:lookup(userRam, Id),
+	    UpdatedUser = User#user{pid=Pid},
+	    ets:insert(userRam, UpdatedUser),
+	    dets:insert(userDisk, UpdatedUser),
+	    ok;
+	{error, not_found} -> {error, not_found}
+    end;
 
 handle_request(get_pid, [UserName]) when is_list(UserName) ->
     case get_user_by_name(list_to_atom(UserName)) of

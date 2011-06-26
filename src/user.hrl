@@ -7,7 +7,7 @@
 -define(USER_DB_FILENAME, "./db/user_db").
 
 -record(user, {id,               %int()
-	       status = enabled, %atom()
+	       status = true,    %atom()
 	       pid,              %atom()
 	       name}).           %term()
 
