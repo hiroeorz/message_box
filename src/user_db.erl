@@ -2,6 +2,7 @@
 %% Description : Include file for user_db
 
 -module(user_db).
+-include_lib("eunit/include/eunit.hrl").
 -include("user.hrl").
 
 -export([init/1]).

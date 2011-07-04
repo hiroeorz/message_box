@@ -2,6 +2,7 @@
 %% Description : user follow relationship database.
 
 -module(follow_db).
+-include_lib("eunit/include/eunit.hrl").
 -include("message.hrl").
 -include("user.hrl").
 
@@ -53,7 +54,7 @@ save_follow_user(Pid, Id) ->
     call(Pid, save_follow_user, [Id]).
 
 get_follow_ids(Pid) ->
-    reference_call(Pid, get_follower_ids, []).
+    reference_call(Pid, get_follow_ids, []).
 
 map_do(Pid, Fun) ->
     call(Pid, map_do, [Fun]).
@@ -113,15 +114,15 @@ loop(User) ->
 %%
 
 handle_request(save_follow_user, [User, Id]) ->
-    Follower = #follow{id=Id, datetime={date(), time()}},
+    Follow = #follow{id=Id, datetime={date(), time()}},
     
     case is_following(User, Id) of
 	true -> {error, already_following};
 	false ->
 	    Device = db_name(User#user.name),
 	    {DiscName, _} = dets_info(Device),
-	    ets:insert(Device, Follower),
-	    dets:insert(DiscName, Follower),
+	    ets:insert(Device, Follow),
+	    dets:insert(DiscName, Follow),
 	    ok
     end;
 
@@ -131,8 +132,8 @@ handle_request(map_do, [User, Fun]) ->
 	'$end_of_table' ->
 	    ok;
 	First ->
-	    [Follower] = ets:lookup(Device, First),
-	    Fun(Follower),
+	    [Follow] = ets:lookup(Device, First),
+	    Fun(Follow),
 	    map_do(Device, Fun, First)
     end;
 
@@ -157,13 +158,13 @@ handle_request(is_follow, [User, FollowId]) ->
 collect_id(Device, Before, Result) ->
     case ets:next(Device, Before) of
 	'$end_of_table' -> Result;
-	FollowerId -> collect_id(Device, FollowerId, [FollowerId | Result])
+	FollowId -> collect_id(Device, FollowId, [FollowId | Result])
     end.	    
 
 is_following(User, Id) ->
     Device = db_name(User#user.name),
     case ets:lookup(Device, Id) of
-	[_Follower] -> true;
+	[_Follow] -> true;
 	[] -> false
     end.    
 
@@ -180,7 +181,7 @@ map_do(Device, Fun, Entry) ->
 	'$end_of_table' ->
 	    ok;
 	Next ->
-	    [Follower] = ets:lookup(Device, Next),
-	    Fun(Follower),
+	    [Follow] = ets:lookup(Device, Next),
+	    Fun(Follow),
 	    map_do(Device, Fun, Next)
     end.
