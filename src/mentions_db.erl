@@ -193,7 +193,7 @@ get_timeline_ids(Device, DBPid, Count) ->
     end.    
 
 get_max_id(DBPid) ->
-    Result = sqlite3:sql_exec(DBPid, "select * from home 
+    Result = sqlite3:sql_exec(DBPid, "select * from mentions 
                                            order by id limit 1"),
     
     case parse_message_records(Result) of
@@ -223,7 +223,7 @@ parse_message_records(RowList, RecordList) ->
 
 insert_message_to_sqlite3(DBPid, MessageIndex) ->
     sqlite3:sql_exec(DBPid,
-		    "insert into home (id, message_id)
+		    "insert into mentions (id, message_id)
                         values(:id, :message_id)",
 		    [{':id'        , MessageIndex#message_index.id},
 		     {':message_id', MessageIndex#message_index.message_id}]).
