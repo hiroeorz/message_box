@@ -22,7 +22,7 @@
 		  end).
 
 save_get_ids_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup, ?Clearnup,
       [
        fun() ->
@@ -41,7 +41,7 @@ save_get_ids_test_() ->
     }.
 
 map_do_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup, ?Clearnup,
       [
        fun() ->

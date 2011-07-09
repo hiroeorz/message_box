@@ -22,7 +22,7 @@
 		  end).
 
 save_get_timeline_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup, ?Clearnup,
       [
        fun() ->

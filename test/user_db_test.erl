@@ -24,7 +24,7 @@
 -define(TestUser3, #user{id=3, status=true, pid=undefined, name=tanaka}).
 
 start_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup1, ?Clearnup,
       [
        ?_assertEqual(pang, net_adm:ping(user_db))
@@ -33,7 +33,7 @@ start_test_() ->
     }.
 
 create_user_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup1, ?Clearnup,
       [
        ?_assertEqual({error, already_exist}, user_db:add_user(mike)),
@@ -47,7 +47,7 @@ create_user_test_() ->
     }.
     
 delete_user_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup1, ?Clearnup,
       [
        ?_assertEqual({error, already_exist}, user_db:add_user(mike)),
@@ -62,7 +62,7 @@ delete_user_test_() ->
     }.
     
 update_user_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup2, ?Clearnup,
       [
        fun() ->
@@ -82,7 +82,7 @@ update_user_test_() ->
     }.
     
 save_pid_get_pid_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup2, ?Clearnup,
       [
        fun() ->
@@ -107,7 +107,7 @@ save_pid_get_pid_test_() ->
     }.
     
 map_do_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup2, ?Clearnup,
       [
        fun() ->

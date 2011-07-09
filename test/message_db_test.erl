@@ -21,7 +21,7 @@
 		  end).
 
 save_get_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup, ?Clearnup,
       [
        fun() -> 
@@ -39,7 +39,7 @@ save_get_test_() ->
     }.
 
 get_sent_timeline_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup, ?Clearnup,
       [
        fun() -> 
@@ -68,7 +68,7 @@ get_sent_timeline_test_() ->
     }.
     
 get_latest_message_test_() ->
-    {spawn,
+    {inorder,
      {setup, ?Setup, ?Clearnup,
       [
        fun() -> 

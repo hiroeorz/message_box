@@ -152,8 +152,16 @@ loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid,
 	    exit(Reason);
 
 	{'EXIT', ExitPid, Reason} ->
-	    io:format("~p: process(~p) is shutdown(Reason:~p).~n", 
-		      [?MODULE, ExitPid, Reason])
+	    UserManagerPid = whereis(user_manager),
+	    case ExitPid of
+		UserManagerPid ->
+		    io:format("~p: user_manager is shutdown(Reason:~p).~n", 
+			      [?MODULE, Reason]),
+		    exit(normal);
+		_ ->
+		    io:format("~p: process(~p) is shutdown(Reason:~p).~n", 
+			      [?MODULE, ExitPid, Reason])
+	    end
     end.
 
 handle_stop({_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid, 
