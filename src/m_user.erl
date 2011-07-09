@@ -2,6 +2,7 @@
 %% Description : user handler module.
 
 -module(m_user).
+-include_lib("eunit/include/eunit.hrl").
 -include("user.hrl").
 -export([init/1]).
 -export([start/1, stop/1]).
@@ -24,7 +25,6 @@ init(UserName) ->
 
     {DiscName, Path} = util:db_info(UserName),
     {ok, DBPid} = sqlite3:open(DiscName, [{file, Path}]),
-
     MessageDB_Pid = message_db:start(UserName, DBPid),
     HomeDB_Pid = home_db:start(UserName, DBPid),
     MentionsDB_Pid = mentions_db:start(UserName, DBPid),

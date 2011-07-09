@@ -187,7 +187,6 @@ handle_request(map_do, [Fun]) ->
 handle_request(save_pid, [Id, Pid])->
     case get_user_by_id(Id) of
 	{ok, User} ->
-	    %%[User] = ets:lookup(userRam, Id),
 	    UpdatedUser = User#user{pid=Pid},
 	    ets:insert(userRam, UpdatedUser),
 	    dets:insert(userDisk, UpdatedUser),
