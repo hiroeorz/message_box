@@ -3,16 +3,19 @@
 
 -module(message_box).
 -include("user.hrl").
--export([init/0]).
--export([start/0, stop/0]).
--export([get_message/1, create_user/1, send_message/2, follow/2,
+-export([init/1]).
+-export([start/0, start/1, stop/0]).
+-export([get_message/1, create_user/1, send_message/2, follow/2, is_follow/2,
 	 get_home_timeline/2, get_mentions_timeline/2, get_sent_timeline/2]).
 
 start() ->
-    register(?MODULE, spawn(?MODULE, init, [])).
+    register(?MODULE, spawn(?MODULE, init, [?USER_DB_FILENAME])).
 
-init() ->
-    user_db:start(),
+start(UserDbFilePath) ->
+    register(?MODULE, spawn(?MODULE, init, [UserDbFilePath])).
+
+init(UserDbFilePath) ->
+    user_db:start(UserDbFilePath),
     user_manager:start(),
     user_manager:start_all_users(),
     process_flag(trap_exit, true),
@@ -45,6 +48,9 @@ get_mentions_timeline(UserId_OR_Name, Count) ->
 
 get_sent_timeline(UserId_OR_Name, Count) ->
     spawn_call(get_sent_timeline, [UserId_OR_Name, Count]).    
+
+is_follow(UserId_OR_Name, Id) ->
+    spawn_call(is_follow, [UserId_OR_Name, Id]).
 
 %%
 %% @doc remote call functions.
@@ -107,10 +113,14 @@ handle_request(get_message, [MessageId]) ->
     message_db:get_message(MessageId);
 
 handle_request(create_user, [UserName]) ->
-    {ok, User} = user_db:add_user(UserName),
-    Pid = m_user:start(User#user.name),
-    AssignedUser = User#user{pid = Pid},
-    {ok, AssignedUser};
+    case user_db:add_user(UserName) of
+	{ok, User} ->
+	    Pid = m_user:start(User#user.name),
+	    AssignedUser = User#user{pid = Pid},
+	    {ok, AssignedUser};
+	{error, already_exist} ->
+	    {error, already_exist}
+    end;
 
 handle_request(send_message, [Id, Message]) ->
     m_user:send_message(Id, Message);
@@ -125,6 +135,8 @@ handle_request(get_mentions_timeline, [UserId_OR_Name, Count]) ->
     m_user:get_mentions_timeline(UserId_OR_Name, Count);
 
 handle_request(get_sent_timeline, [UserId_OR_Name, Count]) ->
-    m_user:get_sent_timeline(UserId_OR_Name, Count).
+    m_user:get_sent_timeline(UserId_OR_Name, Count);
    
+handle_request(is_follow, [UserId_OR_Name, Id]) ->
+    m_user:is_follow(UserId_OR_Name, Id).
 

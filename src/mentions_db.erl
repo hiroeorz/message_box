@@ -177,6 +177,12 @@ get_timeline_ids(Device, DBPid, Count) ->
 	end,
 
     if length(MessageIdsFromEts) < Count ->
+	    get_message_ids_from_db(DBPid, Count, MessageIdsFromEts);
+       true -> MessageIdsFromEts
+    end.    
+
+get_message_ids_from_db(_DBPid, _Count, []) -> [];
+get_message_ids_from_db(DBPid, Count, MessageIdsFromEts) ->
 	    SqlResult = 
 		sqlite3:sql_exec(DBPid, "select * from mentions
                                            where id > :id
@@ -187,10 +193,7 @@ get_timeline_ids(Device, DBPid, Count) ->
 	    
 	    Ids = lists:map(fun(Record) -> Record#message_index.id end,
 			    parse_message_records(SqlResult)),
-	    MessageIdsFromEts ++ Ids;
-       
-       true -> MessageIdsFromEts
-    end.    
+	    MessageIdsFromEts ++ Ids.    
 
 get_max_id(DBPid) ->
     Result = sqlite3:sql_exec(DBPid, "select * from mentions 

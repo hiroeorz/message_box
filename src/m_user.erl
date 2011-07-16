@@ -107,8 +107,7 @@ reference_call(UserName_OR_Id, Name, Args)  ->
 reply(To, Pid, Result) ->
     To ! {Pid, reply, Result}.
 
-loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid,
-      MentionsDB_Pid}=State) ->
+loop(State) ->
     Pid = self(),
     receive
 	{request, From, stop, []} ->
@@ -126,41 +125,17 @@ loop({_User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid,
 	    reply(From, Pid, Result),
 	    loop(State);
 
-	{'EXIT', MessageDB_Pid, Reason} ->
-	    io:format("~p: message_db process(~p) is shutdown. reason:~p~n", 
-		      [?MODULE, MessageDB_Pid, Reason]),
-	    exit(Reason);
-
-	{'EXIT', HomeDB_Pid, Reason} ->
-	    io:format("~p: home_db process(~p) is shutdown. reason:~p~n", 
-		      [?MODULE, HomeDB_Pid, Reason]),
-	    exit(Reason);
-
-	{'EXIT', FollowerDB_Pid, Reason} ->
-	    io:format("~p: follower_db process(~p) is shutdown. reason:~p~n", 
-		      [?MODULE, FollowerDB_Pid, Reason]),
-	    exit(Reason);
-
-	{'EXIT', FollowDB_Pid, Reason} ->
-	    io:format("~p: follower_db process(~p) is shutdown. reason:~p~n", 
-		      [?MODULE, FollowDB_Pid, Reason]),
-	    exit(Reason);
-
-	{'EXIT', MentionsDB_Pid, Reason} ->
-	    io:format("~p: follower_db process(~p) is shutdown. reason:~p~n", 
-		      [?MODULE, MentionsDB_Pid, Reason]),
-	    exit(Reason);
-
 	{'EXIT', ExitPid, Reason} ->
 	    UserManagerPid = whereis(user_manager),
 	    case ExitPid of
 		UserManagerPid ->
 		    io:format("~p: user_manager is shutdown(Reason:~p).~n", 
 			      [?MODULE, Reason]),
-		    exit(normal);
+		    exit(Reason);
 		_ ->
 		    io:format("~p: process(~p) is shutdown(Reason:~p).~n", 
-			      [?MODULE, ExitPid, Reason])
+			      [?MODULE, ExitPid, Reason]),
+		    exit(Reason)
 	    end
     end.
 

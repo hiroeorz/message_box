@@ -7,7 +7,7 @@
 -export([get_user_from_message_id/1, get_user_id_from_message_id/1, 
 	 formatted_number/2, formatted_number/3, get_timeline_ids/4,
 	 get_reply_list/1, is_reply_text/1,
-	 db_info/1]).
+	 db_info/1, sleep/1]).
 
 -define(SEPARATOR, "\s\n").
 
@@ -92,3 +92,13 @@ db_info(UserName)->
     Path = ?DB_DIR ++ FileName,
     {DiscName, Path}.
 
+%%
+%% @doc sleep function
+%%
+
+sleep(Msec) when is_integer(Msec) ->
+    receive
+    after Msec -> ok
+    end.
+
+ 
