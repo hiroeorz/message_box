@@ -5,7 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("../src/user.hrl").
 -include("../src/message.hrl").
--export([wait/0]).
+-export([wait/0, get_id/1, get_id_list/1]).
 
 -define(Setup, fun() -> 
 		       ?cmd("mkdir -p /tmp/test_db"), 
@@ -30,34 +30,36 @@ all_test_() ->
 	       ?assertMatch({ok, _AssignedUser}, 
 			    message_box:create_user(user1)),
 	       ?assertMatch({ok, _AssignedUser}, 
-			    message_box:create_user(user2)),
-
-	       % メッセージをポストする
+			    message_box:create_user(user2))
+       end,
+       
+       fun() ->
+	       % メッセージをポストし、送信したメッセージを取得して内容を照合する
 	       message_box_test:wait(),
-	       {ok, ShinUser} = user_db:lookup_name(shin),
-	       ShinId = ShinUser#user.id,
+	       ShinId = message_box_test:get_id(shin),
 	       Message1 = "hello world",
 	       {ok, SavedMessageId_0} = message_box:send_message(ShinId,  
 								 Message1),
 
-	       % 送信したメッセージを取得して内容を照合する
 	       {ok, SavedMessage_0} = message_box:get_message(SavedMessageId_0),
-	       ?assertEqual(Message1, SavedMessage_0#message.text),
+	       ?assertEqual(Message1, SavedMessage_0#message.text)
+       end,
 
-	       % この後のテストのために情報を変数に格納
-	       message_box_test:wait(),
-	       {ok, User1} = user_db:lookup_name(user1),
-	       {ok, User2} = user_db:lookup_name(user2),
-	       User1Id = User1#user.id,
-	       User2Id = User2#user.id,
-
+       fun() ->
 	       % 他ユーザをフォローし、フォローした事を確認
+	       message_box_test:wait(),
+	       [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+
 	       message_box:follow(ShinId, User1Id),
 	       ?assertEqual(true, message_box:is_follow(ShinId, User1Id)),
-	       ?assertEqual(false, message_box:is_follow(ShinId, User2Id)),
+	       ?assertEqual(false, message_box:is_follow(ShinId, User2Id))
+       end,
 
+       fun() ->
 	       % フォロワーが居ない状態では自分のメッセージは自分のHOMEのみにある
 	       message_box_test:wait(),
+	       [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+
 	       Message2 = "hello everyone!! :)",
 	       {ok, _Message2Id} = message_box:send_message(ShinId, Message2),
 	       message_box_test:wait(),
@@ -71,9 +73,13 @@ all_test_() ->
 
 	       % 内容を確認
 	       Latest_00 = lists:nth(1, ShinHome_0),
-	       ?assertEqual(Message2, Latest_00#message.text),
+	       ?assertEqual(Message2, Latest_00#message.text)
+       end,
 
+       fun() ->
 	       % フォロワーがいるユーザのポストはフォロワーのホームにも出現
+	       [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+
 	       Message3 = "I am tired :<",
 	       message_box:send_message(User1Id,  Message3),
 	       message_box_test:wait(),
@@ -89,30 +95,41 @@ all_test_() ->
 	       Latest_01 = lists:nth(1, ShinHome_1),
 	       ?assertEqual(Message3, Latest_01#message.text),
 	       ?assertEqual(lists:nth(1, ShinHome_1), 
-			    lists:nth(1, User1Home_1)),
+			    lists:nth(1, User1Home_1))
+       end,
 
+       fun() ->
 	       % この時点で全員のメンションが空であることを確認
+	       [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+
 	       ShinMentions_0 = message_box:get_mentions_timeline(ShinId, 10),
 	       ?assertEqual(0, length(ShinMentions_0)),
 	       User1Mention_0 = message_box:get_mentions_timeline(User1Id, 10),
 	       ?assertEqual(0, length(User1Mention_0)),
 	       User2Mention_0 = message_box:get_mentions_timeline(User2Id, 10),
-	       ?assertEqual(0, length(User2Mention_0)),
+	       ?assertEqual(0, length(User2Mention_0))
+       end,
 
-	       % User1からShinへリプライを送信する
+       fun() ->
+	       % User1からShinへリプライを送信し、Shinがリプライを受信した事を確認
+	       [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+
 	       Message4 = "@shin Thank you for your follow!! :-)",
 	       message_box:send_message(User1Id,  Message4),
 	       message_box_test:wait(),
 
-	       % Shinがリプライを受信した
 	       ShinMentions_1 = message_box:get_mentions_timeline(ShinId, 10),
 	       ?assertEqual(1, length(ShinMentions_1)),
 	       User1Mention_1 = message_box:get_mentions_timeline(User1Id, 10),
 	       ?assertEqual(0, length(User1Mention_1)),
 	       User2Mention_1 = message_box:get_mentions_timeline(User2Id, 10),
-	       ?assertEqual(0, length(User2Mention_1)),
+	       ?assertEqual(0, length(User2Mention_1))
+       end,
 
+       fun() ->
 	       % リプライは送り主と受け取り主のホームに出現する
+	       [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+
 	       ShinHome_2 = message_box:get_home_timeline(ShinId, 10),
 	       ?assertEqual(4, length(ShinHome_2)),
 	       User1Home_2 = message_box:get_home_timeline(User1Id, 10),
@@ -121,30 +138,49 @@ all_test_() ->
 	       ?assertEqual(0, length(User2Home_2)),
 
 	       % 内容を確認
+	       ShinMentions_1 = message_box:get_mentions_timeline(ShinId, 10),
 	       Latest_02 = lists:nth(1, ShinMentions_1),
+	       Message4 = "@shin Thank you for your follow!! :-)",
 	       ?assertEqual(Message4, Latest_02#message.text),
 	       ?assertEqual(lists:nth(1, ShinMentions_1), 
 			    lists:nth(1, ShinHome_2)),
 	       ?assertEqual(lists:nth(1, ShinMentions_1), 
-			    lists:nth(1, User1Home_2)),
+			    lists:nth(1, User1Home_2))
+       end,
 
+       fun() ->
 	       % ShinがUser2をフォローする
-	       message_box:follow(ShinId, User2Id),
-	       
+	       [ShinId, User2Id] = get_id_list([shin, user2]),
+
+	       message_box:follow(ShinId, User2Id)
+       end,
+
+       fun() ->
 	       % User1がUser2にリプライを送信する
+	       [User1Id] = get_id_list([user1]),
+	       User1Id = message_box_test:get_id(user1),
 	       Message5 = "@user2 hello! user2 :-)",
 	       message_box:send_message(User1Id,  Message5),
-	       message_box_test:wait(),
+	       message_box_test:wait()
+       end,
 
+       fun() ->
 	       % User2がリプライを受信した
+	       [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+
 	       ShinMentions_2 = message_box:get_mentions_timeline(ShinId, 10),
 	       ?assertEqual(1, length(ShinMentions_2)),
 	       User1Mention_2 = message_box:get_mentions_timeline(User1Id, 10),
 	       ?assertEqual(0, length(User1Mention_2)),
 	       User2Mention_2 = message_box:get_mentions_timeline(User2Id, 10),
-	       ?assertEqual(1, length(User2Mention_2)),
+	       ?assertEqual(1, length(User2Mention_2))
+       end,
 
+       fun() ->
 	       % リプライは両者をフォローしているユーザのホームにも出現する
+	       [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+	       Message5 = "@user2 hello! user2 :-)",
+
 	       ShinHome_3 = message_box:get_home_timeline(ShinId, 10),
 	       ?assertEqual(5, length(ShinHome_3)),
 	       User1Home_3 = message_box:get_home_timeline(User1Id, 10),
@@ -154,6 +190,8 @@ all_test_() ->
 
 	       % 内容を確認
 	       Latest_03 = lists:nth(1, ShinHome_3),
+	       User2Mention_2 = message_box:get_mentions_timeline(User2Id, 10),
+
 	       ?assertEqual(Message5, Latest_03#message.text),
 	       ?assertEqual(lists:nth(1, ShinHome_3), 
 			    lists:nth(1, User1Home_3)),
@@ -168,3 +206,16 @@ all_test_() ->
 wait() ->
     util:sleep(300).
     
+get_id(Name) ->    
+    {ok, User} = user_db:lookup_name(Name),
+    User#user.id.
+
+get_id_list(NameList) -> 
+    get_id_list(NameList, []).
+
+get_id_list(NameList, Result) ->
+    case NameList of
+	[] -> lists:reverse(Result);
+	[Name | Tail] -> get_id_list(Tail, [get_id(Name) | Result])
+    end.
+	    
