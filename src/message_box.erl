@@ -5,7 +5,7 @@
 -include("user.hrl").
 -export([init/1]).
 -export([start/0, start/1, stop/0]).
--export([get_message/1, create_user/1, send_message/2, follow/2, is_follow/2,
+-export([get_message/1, create_user/3, send_message/2, follow/2, is_follow/2,
 	 get_home_timeline/2, get_mentions_timeline/2, get_sent_timeline/2]).
 
 start() ->
@@ -31,8 +31,8 @@ stop() ->
 get_message(MessageId) ->
     spawn_call(get_message, [MessageId]).
 
-create_user(UserName) ->
-    spawn_call(create_user, [UserName]).
+create_user(UserName, Mail, Password) ->
+    spawn_call(create_user, [UserName, Mail, Password]).
 
 send_message(Id, Message) ->
     spawn_call(send_message, [Id, Message]).
@@ -112,8 +112,8 @@ handle_stop([From]) ->
 handle_request(get_message, [MessageId]) ->
     message_db:get_message(MessageId);
 
-handle_request(create_user, [UserName]) ->
-    case user_db:add_user(UserName) of
+handle_request(create_user, [UserName, Mail, Password]) ->
+    case user_db:add_user(UserName, Mail, Password) of
 	{ok, User} ->
 	    Pid = m_user:start(User#user.name),
 	    AssignedUser = User#user{pid = Pid},

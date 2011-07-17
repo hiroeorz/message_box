@@ -8,7 +8,7 @@
 -export([init/1]).
 -export([start/0, start/1, stop/0, loop/1,
 	 call/2, reply/3, 
-	 add_user/1, update_user/1, delete_user/1, 
+	 add_user/3, update_user/1, delete_user/1, 
 	 lookup_id/1, lookup_name/1, lookup_pid/1,
 	 map_do/1, save_pid/2, get_pid/1]).
 
@@ -37,7 +37,8 @@ close_tables()->
     dets:close(userDisk).
 
 restore_table()->
-    Insert = fun(#user{id=_UserID, name=_UserName, status=_Status} = User)->
+    Insert = fun(#user{id=_UserID, name=_UserName, status=_Status,
+		       mail=_Mail, password=_Password} = User)->
 		     ets:insert(userRam, User),
 		     continue
 	     end,
@@ -48,11 +49,12 @@ restore_table()->
 %% export functions.
 %%
 
-add_user(Name)->
+add_user(Name, Mail, Password)->
     Status = true,
-    call(add_user, [Name, Status]).
+    call(add_user, [Name, Status, Mail, Password]).
 
-update_user(#user{id=_UserID, name=_UserName, status=_Status} = User)->
+update_user(#user{id=_UserID, name=_UserName, status=_Status,
+		  mail=_Mail, password=_Password} = User)->
     call(update_user, [User]).
 
 delete_user(Id)->
@@ -138,7 +140,7 @@ handle_stop([From, Reason]) ->
     close_tables(),
     exit(Reason).
 
-handle_request(add_user, [Name, Status])->
+handle_request(add_user, [Name, Status, Mail, Password])->
     case get_user_by_name(Name) of
 	{ok, _User} -> {error, already_exist};
 	{error, not_found} ->
@@ -146,7 +148,8 @@ handle_request(add_user, [Name, Status])->
 			     '$end_of_table' -> 1;
 			     UserId -> UserId + 1
 			 end,
-	    User = #user{id=NextUserId, name=Name, status=Status},
+	    User = #user{id=NextUserId, name=Name, status=Status,
+			 mail=Mail, password=Password},
 	    ets:insert(userRam, User),
 	    dets:insert(userDisk, User),
 	    {ok, User}
@@ -217,14 +220,16 @@ handle_request(get_pid, [UserId]) when is_integer(UserId) ->
 %%
 
 get_user_by_pid(Pid) ->
-    Pattern = #user{id='$1', name='_', status='_', pid=Pid},
+    Pattern = #user{id='$1', name='_', status='_', pid=Pid, 
+		    mail='_', password='_'},
     case ets:match(userRam, Pattern) of
 	[]-> {error, not_found};
 	[[UserId]] -> get_user_by_id(UserId)
     end.
 
 get_user_by_name(Name) ->
-    Pattern = #user{id='$1', name=Name, status='_', pid='_'},
+    Pattern = #user{id='$1', name=Name, status='_', pid='_', 
+		    mail='_', password='_'},
     case ets:match(userRam, Pattern) of
 	[]-> {error, not_found};
 	[[UserId]] -> get_user_by_id(UserId)

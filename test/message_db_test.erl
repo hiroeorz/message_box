@@ -10,7 +10,7 @@
 -define(Setup, fun() -> 
 		       ?cmd("mkdir -p /tmp/test_db"), 
 		       user_db:start("/tmp/test_db/user_db"),
-		       user_db:add_user(mike),
+		       user_db:add_user(mike, "mike@mail.co.jp", "aaa"),
 		       message_db_test:setup_server()
 	       end).
 -define(Clearnup, fun({Pid, SQLite3Pid}) ->

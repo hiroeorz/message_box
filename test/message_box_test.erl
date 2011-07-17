@@ -26,11 +26,17 @@ all_test_() ->
 	fun() ->
 		message_box_test:wait(),
 		?assertMatch({ok, _AssignedUser}, 
-			     message_box:create_user(shin)),
+			     message_box:create_user(shin, 
+						     "shin@mail.jp", 
+						     "aaa")),
 		?assertMatch({ok, _AssignedUser}, 
-			     message_box:create_user(user1)),
+			     message_box:create_user(user1, 
+						     "user1@mail.jp", 
+						     "bbb")),
 		?assertMatch({ok, _AssignedUser}, 
-			     message_box:create_user(user2))
+			     message_box:create_user(user2, 
+						     "user2@mail.jp", 
+						     "ccc"))
 	end 
        },
        

@@ -8,20 +8,25 @@
 -define(Setup1, fun() -> 
 		       ?cmd("mkdir -p /tmp/test_db"), 
 		       user_db:start("/tmp/test_db/user_db"),
-		       user_db:add_user(mike)
+		       user_db:add_user(mike, "mike@mail.co.jp", "aaa")
 	       end).
 -define(Setup2, fun() -> 
 		       ?cmd("mkdir -p /tmp/test_db"), 
 		       user_db:start("/tmp/test_db/user_db"),
-		       user_db:add_user(mike),
-		       user_db:add_user(tom),
-		       user_db:add_user(tanaka)
+		       user_db:add_user(mike, "mike@mail.co.jp", "aaa"),
+		       user_db:add_user(tom, "tom@mail.co.jp", "aaa"),
+		       user_db:add_user(tanaka, "tanaka@mail.co.jp", "aaa")
 	       end).
 
 -define(Clearnup, fun(_) -> user_db:stop(), ?cmd("rm -r /tmp/test_db") end).
--define(TestUser1, #user{id=1, status=true, pid=undefined, name=mike}).
--define(TestUser2, #user{id=2, status=true, pid=undefined, name=tom}).
--define(TestUser3, #user{id=3, status=true, pid=undefined, name=tanaka}).
+-define(TestUser1, #user{id=1, status=true, pid=undefined, name=mike,
+			 mail="mike@mail.co.jp", password="aaa"}).
+
+-define(TestUser2, #user{id=2, status=true, pid=undefined, name=tom,
+			 mail="tom@mail.co.jp", password="aaa"}).
+
+-define(TestUser3, #user{id=3, status=true, pid=undefined, name=tanaka,
+			 mail="tanaka@mail.co.jp", password="aaa"}).
 
 start_test_() ->
     {inorder,
@@ -36,9 +41,13 @@ create_user_test_() ->
     {inorder,
      {setup, ?Setup1, ?Clearnup,
       [
-       ?_assertEqual({error, already_exist}, user_db:add_user(mike)),
-       ?_assertEqual({ok, ?TestUser2}, user_db:add_user(tom)),
-       ?_assertEqual({ok, ?TestUser1}, user_db:lookup_id(1)),
+       ?_assertEqual({error, already_exist}, 
+		     user_db:add_user(mike, "mike@mail.co.jp", "aaa")),
+
+       ?_assertEqual({ok, ?TestUser2}, 
+		     user_db:add_user(tom, "tom@mail.co.jp", "aaa")),
+
+       ?_assertEqual({ok, ?TestUser1},user_db:lookup_id(1)),
        ?_assertEqual({ok, ?TestUser2}, user_db:lookup_id(2)),
        ?_assertEqual({ok, ?TestUser1}, user_db:lookup_name(mike)),
        ?_assertEqual({ok, ?TestUser2}, user_db:lookup_name(tom))
@@ -50,8 +59,12 @@ delete_user_test_() ->
     {inorder,
      {setup, ?Setup1, ?Clearnup,
       [
-       ?_assertEqual({error, already_exist}, user_db:add_user(mike)),
-       ?_assertEqual({ok, ?TestUser2}, user_db:add_user(tom)),
+       ?_assertEqual({error, already_exist}, 
+		     user_db:add_user(mike, "mike@mail.co.jp", "aaa")),
+
+       ?_assertEqual({ok, ?TestUser2}, 
+		     user_db:add_user(tom, "tom@mail.co.jp", "aaa")),
+
        ?_assertEqual({ok, ?TestUser1}, user_db:lookup_id(1)),
        ?_assertEqual({ok, ?TestUser2}, user_db:lookup_id(2)),
        ?_assertEqual(ok, user_db:delete_user(2)),

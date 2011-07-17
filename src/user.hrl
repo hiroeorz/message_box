@@ -10,7 +10,10 @@
 -record(user, {id,               %int()
 	       status = true,    %atom()
 	       pid,              %atom()
-	       name}).           %term()
+	       name,             %term()
+	       mail,             %string
+	       password          %string
+	      }).           
 
 
 -record(follower, {id,           %int()
