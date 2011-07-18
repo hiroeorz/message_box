@@ -1,6 +1,6 @@
-= GitFileService
+= MessageBox
 
-GitFileService is remote file service using git.
+MessageBox is Twitter Cline using Erlang (for plactice).
 
 ==Setup
 
