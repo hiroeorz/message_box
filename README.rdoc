@@ -1,6 +1,6 @@
 = MessageBox
 
-MessageBox is Twitter Cline using Erlang (for plactice).
+MessageBox is Twitter clone using Erlang (for plactice).
 
 ==Setup
 
