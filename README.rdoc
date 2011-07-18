@@ -12,7 +12,7 @@ MessageBox is Twitter clone using Erlang (for plactice).
 ==Testing
  $ make eunit
 
-=Use
+==Examples
  $ mkdir /tmp/test_db
  $ make boot
 
