@@ -6,9 +6,9 @@
 -include("user.hrl").
 -export([init/1]).
 -export([start/1, stop/1]).
--export([send_message/2, get_message/2, get_sent_timeline/2, 
+-export([send_message/3, get_message/2, get_sent_timeline/2, 
 	 get_home_timeline/2, save_to_home/2, save_to_home/3,
-	 follow/2, add_follower/2, get_follower_ids/1, is_follow/2,
+	 follow/3, add_follower/2, get_follower_ids/1, is_follow/2,
 	 save_to_mentions/2, get_mentions_timeline/2]).
 
 -define(USER_MANAGER, user_manager).
@@ -42,8 +42,8 @@ stop(UserName) ->
 %% @doc export functions
 %%
 
-send_message(UserName_OR_Id, Text) ->
-    call(UserName_OR_Id, send_message, [Text]).
+send_message(UserName_OR_Id, Password, Text) ->
+    call(UserName_OR_Id, send_message, [Password, Text]).
 
 get_message(UserName_OR_Id, MessageId) ->
     reference_call(UserName_OR_Id, get_message, [MessageId]).
@@ -63,8 +63,8 @@ save_to_home(UserName_OR_Id, MessageId) ->
 save_to_home(UserName_OR_Id, MessageId, IsReplyText) ->
     call(UserName_OR_Id, save_to_home, [MessageId, IsReplyText]).    
 
-follow(UserName_OR_Id, UserId) ->
-    call(UserName_OR_Id, follow, [UserId]).
+follow(UserName_OR_Id, Password, UserId) ->
+    call(UserName_OR_Id, follow, [Password, UserId]).
 
 add_follower(UserName_OR_Id, UserId) ->
     call(UserName_OR_Id, add_follower, [UserId]).        
@@ -152,15 +152,20 @@ handle_request(latest_message, [{User, _}]) ->
     message_db:get_latest_message(User#user.name);
 
 handle_request(send_message, 
-	       [{_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, _, _}, 
-		Text]) ->
-    case message_db:save_message(MessageDB_Pid, Text) of
-	{ok, MessageId} ->
-	    IsReplyTo = util:is_reply_text(Text),
-	    send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid, IsReplyTo),
-	    ReplyToList = util:get_reply_list(Text),
-	    send_to_replies(MessageId, ReplyToList),
-	    {ok, MessageId};
+	       [{User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, _, _}, 
+		Password, Text]) ->
+    case util:authenticate(User, Password) of
+	{ok, authenticated} ->
+	    case message_db:save_message(MessageDB_Pid, Text) of
+		{ok, MessageId} ->
+		    IsReplyTo = util:is_reply_text(Text),
+		    send_to_followers(MessageId, FollowerDB_Pid, 
+				      HomeDB_Pid, IsReplyTo),
+		    ReplyToList = util:get_reply_list(Text),
+		    send_to_replies(MessageId, ReplyToList),
+		    {ok, MessageId};
+		Other -> Other
+	    end;
 	Other -> Other
     end;
 
@@ -188,11 +193,16 @@ handle_request(save_to_home, [{_, _, HomeDB_Pid, _, FollowDB_Pid, _},
 	    home_db:save_message_id(HomeDB_Pid, MessageId)
     end;
 
-handle_request(follow, [{User, _, _, _, FollowDB_Pid, _}, UserId]) ->
-    case user_db:lookup_id(UserId) of
-	{ok, FollowUser} ->
-	    follow_db:save_follow_user(FollowDB_Pid, FollowUser#user.id),
-	    m_user:add_follower(FollowUser#user.id, User#user.id);
+handle_request(follow, [{User, _, _, _, FollowDB_Pid, _}, Password, UserId]) ->
+    case util:authenticate(User, Password) of
+	{ok, authenticated} ->
+	    case user_db:lookup_id(UserId) of
+		{ok, FollowUser} ->
+		    follow_db:save_follow_user(FollowDB_Pid, 
+					       FollowUser#user.id),
+		    m_user:add_follower(FollowUser#user.id, User#user.id);
+		Other -> Other
+	    end;
 	Other -> Other
     end;
 

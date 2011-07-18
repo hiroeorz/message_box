@@ -45,7 +45,8 @@ all_test_() ->
 		 message_box_test:wait(),
 		 ShinId = message_box_test:get_id(shin),
 		 Message1 = "hello world",
-		 {ok, SavedMessageId_0} = message_box:send_message(ShinId,  
+		 {ok, SavedMessageId_0} = message_box:send_message(ShinId,
+								   "aaa",
 								    Message1),
 		 
 		 {ok, SavedMessage_0} = 
@@ -55,12 +56,46 @@ all_test_() ->
 	 end 
        },
 
+       { "パスワードが間違っていたら送信できない",
+	 fun() ->
+		 message_box_test:wait(),
+		 ShinId = message_box_test:get_id(shin),
+		 Message1 = "failure message",
+		 Result = message_box:send_message(ShinId, "invalidpas", 
+						   Message1),
+		 ?assertEqual({error, unauthenticated}, Result) 
+	 end
+       },
+
+       { "他のユーザのパスワードでも送信出来ない",
+	 fun() ->
+		 message_box_test:wait(),
+		 ShinId = message_box_test:get_id(shin),
+		 Message1 = "failure message",
+		 Result = message_box:send_message(ShinId, "bbb", 
+						   Message1),
+		 ?assertEqual({error, unauthenticated}, Result) 
+	 end
+       },
+
+       { "パスワードが間違っていたら、他ユーザのフォローに失敗する",
+	 fun() ->
+		 message_box_test:wait(),
+		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+		 
+		 Result = message_box:follow(ShinId, "invalidpass", User1Id),
+		 ?assertEqual({error, unauthenticated}, Result),
+		 ?assertEqual(false, message_box:is_follow(ShinId, User1Id)),
+		 ?assertEqual(false, message_box:is_follow(ShinId, User2Id))
+	 end 
+       },
+
        { "他ユーザをフォローし、フォローした事を確認",
 	 fun() ->
 		 message_box_test:wait(),
 		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
 		 
-		 message_box:follow(ShinId, User1Id),
+		 message_box:follow(ShinId, "aaa", User1Id),
 		 ?assertEqual(true, message_box:is_follow(ShinId, User1Id)),
 		 ?assertEqual(false, message_box:is_follow(ShinId, User2Id))
 	 end 
@@ -72,7 +107,9 @@ all_test_() ->
 		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
 		 
 		 Message2 = "hello everyone!! :)",
-		 {ok, _Message2Id} = message_box:send_message(ShinId, Message2),
+		 {ok, _Message2Id} = message_box:send_message(ShinId,
+							      "aaa", 
+							      Message2),
 		 message_box_test:wait(),
 		 
 		 ShinHome_0 = message_box:get_home_timeline(ShinId, 10),
@@ -93,7 +130,7 @@ all_test_() ->
 		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
 		 
 		 Message3 = "I am tired :<",
-		 message_box:send_message(User1Id,  Message3),
+		 message_box:send_message(User1Id, "bbb", Message3),
 		 message_box_test:wait(),
 		 
 		 ShinHome_1 = message_box:get_home_timeline(ShinId, 10),
@@ -132,7 +169,7 @@ all_test_() ->
 		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
 		 
 		 Message4 = "@shin Thank you for your follow!! :-)",
-		 message_box:send_message(User1Id,  Message4),
+		 message_box:send_message(User1Id, "bbb", Message4),
 		 message_box_test:wait(),
 		 
 		 ShinMentions_1 = message_box:get_mentions_timeline(ShinId, 
@@ -173,7 +210,7 @@ all_test_() ->
        { "ShinがUser2をフォローする",
 	 fun() ->
 		 [ShinId, User2Id] = get_id_list([shin, user2]),
-		 message_box:follow(ShinId, User2Id),
+		 message_box:follow(ShinId, "aaa", User2Id),
 		 ?assertEqual(true, message_box:is_follow(ShinId, User2Id))
 	 end
        },
@@ -183,7 +220,7 @@ all_test_() ->
 		 [User1Id] = get_id_list([user1]),
 		 User1Id = message_box_test:get_id(user1),
 		 Message5 = "@user2 hello! user2 :-)",
-		 message_box:send_message(User1Id,  Message5),
+		 message_box:send_message(User1Id,  "bbb", Message5),
 		 message_box_test:wait()
 	 end
        },

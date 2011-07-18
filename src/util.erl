@@ -2,6 +2,7 @@
 %% Description : utilities used by other module
 
 -module(util).
+-include_lib("eunit/include/eunit.hrl").
 -include("user.hrl").
 -include("message.hrl").
 -export([get_user_from_message_id/1, get_user_id_from_message_id/1, 

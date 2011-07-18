@@ -5,7 +5,8 @@
 -include("user.hrl").
 -export([init/1]).
 -export([start/0, start/1, stop/0]).
--export([get_message/1, create_user/3, send_message/2, follow/2, is_follow/2,
+-export([authenticate/2, get_message/1, create_user/3, send_message/3, 
+	 follow/3, is_follow/2,
 	 get_home_timeline/2, get_mentions_timeline/2, get_sent_timeline/2]).
 
 start() ->
@@ -29,17 +30,20 @@ stop() ->
 %% @doc export functions
 %%
 
+authenticate(UserName, Password) ->
+    spawn_call(authenticate, [UserName, Password]).    
+
 get_message(MessageId) ->
     spawn_call(get_message, [MessageId]).
 
 create_user(UserName, Mail, Password) ->
     spawn_call(create_user, [UserName, Mail, Password]).
 
-send_message(Id, Message) ->
-    spawn_call(send_message, [Id, Message]).
+send_message(Id, Password, Message) ->
+    spawn_call(send_message, [Id, Password, Message]).
 
-follow(UserId1, UserId2) ->
-    spawn_call(follow, [UserId1, UserId2]).
+follow(UserId1, Password, UserId2) ->
+    spawn_call(follow, [UserId1, Password, UserId2]).
 
 get_home_timeline(UserId_OR_Name, Count) ->
     spawn_call(get_home_timeline, [UserId_OR_Name, Count]).    
@@ -110,6 +114,10 @@ handle_stop([From]) ->
     io:format("~p stopped from ~p~n", [?MODULE, From]),
     exit(from_root).
 
+handle_request(authenticate, [UserName, Password]) ->
+    User = user_db:lookup_name(UserName),
+    util:authenticate(User, Password);
+
 handle_request(get_message, [MessageId]) ->
     message_db:get_message(MessageId);
 
@@ -123,11 +131,11 @@ handle_request(create_user, [UserName, Mail, Password]) ->
 	    {error, already_exist}
     end;
 
-handle_request(send_message, [Id, Message]) ->
-    m_user:send_message(Id, Message);
+handle_request(send_message, [Id, Password, Message]) ->
+    m_user:send_message(Id, Password, Message);
 
-handle_request(follow, [UserId1, UserId2]) ->
-    m_user:follow(UserId1, UserId2);
+handle_request(follow, [UserId1, Password, UserId2]) ->
+    m_user:follow(UserId1, Password, UserId2);
 
 handle_request(get_home_timeline, [UserId_OR_Name, Count]) ->
     m_user:get_home_timeline(UserId_OR_Name, Count);
