@@ -15,6 +15,7 @@ start(UserDbFilePath) ->
     register(?MODULE, spawn(?MODULE, init, [UserDbFilePath])).
 
 init(UserDbFilePath) ->
+    crypto:start(),
     user_db:start(UserDbFilePath),
     user_manager:start(),
     user_manager:start_all_users(),

@@ -149,10 +149,13 @@ handle_request(add_user, [Name, Status, Mail, Password])->
 			     UserId -> UserId + 1
 			 end,
 	    User = #user{id=NextUserId, name=Name, status=Status,
-			 mail=Mail, password=Password},
-	    ets:insert(userRam, User),
-	    dets:insert(userDisk, User),
-	    {ok, User}
+			 mail=Mail, password=undefined},
+	    MD5Password = util:get_md5_password(User, Password),
+	    NewUser = User#user{password=MD5Password},
+
+	    ets:insert(userRam, NewUser),
+	    dets:insert(userDisk, NewUser),
+	    {ok, NewUser}
     end;
 
 handle_request(update_user, [User])->

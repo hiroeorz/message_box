@@ -18,15 +18,16 @@
 		       user_db:add_user(tanaka, "tanaka@mail.co.jp", "aaa")
 	       end).
 
+-define(RowPassword, "aaa").
 -define(Clearnup, fun(_) -> user_db:stop(), ?cmd("rm -r /tmp/test_db") end).
 -define(TestUser1, #user{id=1, status=true, pid=undefined, name=mike,
-			 mail="mike@mail.co.jp", password="aaa"}).
+			 mail="mike@mail.co.jp", password=undefined}).
 
 -define(TestUser2, #user{id=2, status=true, pid=undefined, name=tom,
-			 mail="tom@mail.co.jp", password="aaa"}).
+			 mail="tom@mail.co.jp", password=undefined}).
 
 -define(TestUser3, #user{id=3, status=true, pid=undefined, name=tanaka,
-			 mail="tanaka@mail.co.jp", password="aaa"}).
+			 mail="tanaka@mail.co.jp", password=undefined}).
 
 start_test_() ->
     {inorder,
@@ -41,16 +42,27 @@ create_user_test_() ->
     {inorder,
      {setup, ?Setup1, ?Clearnup,
       [
-       ?_assertEqual({error, already_exist}, 
-		     user_db:add_user(mike, "mike@mail.co.jp", "aaa")),
-
-       ?_assertEqual({ok, ?TestUser2}, 
-		     user_db:add_user(tom, "tom@mail.co.jp", "aaa")),
-
-       ?_assertEqual({ok, ?TestUser1},user_db:lookup_id(1)),
-       ?_assertEqual({ok, ?TestUser2}, user_db:lookup_id(2)),
-       ?_assertEqual({ok, ?TestUser1}, user_db:lookup_name(mike)),
-       ?_assertEqual({ok, ?TestUser2}, user_db:lookup_name(tom))
+       fun() ->
+	       User1Template = ?TestUser1,
+	       User2Template = ?TestUser2,
+	       MD5Password1 = util:get_md5_password(User1Template, 
+						    ?RowPassword),
+	       MD5Password2 = util:get_md5_password(User2Template, 
+						    ?RowPassword),
+	       User1 = User1Template#user{password=MD5Password1},
+	       User2 = User2Template#user{password=MD5Password2},
+	       
+	       ?assertEqual({error, already_exist}, 
+			    user_db:add_user(mike, "mike@mail.co.jp", "aaa")),
+	       
+	       ?assertEqual({ok, User2},
+			    user_db:add_user(tom, "tom@mail.co.jp", "aaa")),
+	       
+	       ?assertEqual({ok, User1}, user_db:lookup_id(1)),
+	       ?assertEqual({ok, User2}, user_db:lookup_id(2)),
+	       ?assertEqual({ok, User1}, user_db:lookup_name(mike)),
+	       ?assertEqual({ok, User2}, user_db:lookup_name(tom))
+       end
       ]
      }
     }.
@@ -59,17 +71,28 @@ delete_user_test_() ->
     {inorder,
      {setup, ?Setup1, ?Clearnup,
       [
-       ?_assertEqual({error, already_exist}, 
-		     user_db:add_user(mike, "mike@mail.co.jp", "aaa")),
-
-       ?_assertEqual({ok, ?TestUser2}, 
-		     user_db:add_user(tom, "tom@mail.co.jp", "aaa")),
-
-       ?_assertEqual({ok, ?TestUser1}, user_db:lookup_id(1)),
-       ?_assertEqual({ok, ?TestUser2}, user_db:lookup_id(2)),
-       ?_assertEqual(ok, user_db:delete_user(2)),
-       ?_assertEqual({error, not_found}, user_db:lookup_id(2)),
-       ?_assertEqual({ok, ?TestUser1}, user_db:lookup_id(1))
+       fun() ->
+	       User1Template = ?TestUser1,
+	       User2Template = ?TestUser2,
+	       MD5Password1 = util:get_md5_password(User1Template, 
+						    ?RowPassword),
+	       MD5Password2 = util:get_md5_password(User2Template, 
+						    ?RowPassword),
+	       User1 = User1Template#user{password=MD5Password1},
+	       User2 = User2Template#user{password=MD5Password2},
+	       
+	       ?assertEqual({error, already_exist}, 
+			    user_db:add_user(mike, "mike@mail.co.jp", "aaa")),
+	       
+	       ?assertEqual({ok, User2}, 
+			    user_db:add_user(tom, "tom@mail.co.jp", "aaa")),
+	       
+	       ?assertEqual({ok, User1}, user_db:lookup_id(1)),
+	       ?assertEqual({ok, User2}, user_db:lookup_id(2)),
+	       ?assertEqual(ok, user_db:delete_user(2)),
+	       ?assertEqual({error, not_found}, user_db:lookup_id(2)),
+	       ?assertEqual({ok, User1}, user_db:lookup_id(1))
+       end
       ]
      }
     }.
@@ -100,7 +123,9 @@ save_pid_get_pid_test_() ->
       [
        fun() ->
 	       User = ?TestUser1,
-	       UpdatedUser = User#user{pid = self()},
+	       MD5Password = util:get_md5_password(User, ?RowPassword),
+	       UpdatedUser = User#user{pid = self(), password=MD5Password},
+	       
 	       ?assertEqual(ok, user_db:save_pid(?TestUser1#user.id, self())),
 	       ?assertEqual({ok, UpdatedUser}, user_db:lookup_pid(self())),
 	       ?assertEqual({ok, self()}, user_db:get_pid(mike)),
