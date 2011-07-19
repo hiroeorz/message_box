@@ -21,7 +21,7 @@
 			  ?cmd("rm -r /tmp/test_db") 
 		  end).
 
-save_get_test_() ->
+all_test_() ->
     {inorder,
      {setup, ?Setup, ?Clearnup,
       [
@@ -37,7 +37,8 @@ save_get_test_() ->
 		 ?assertEqual(false, follow_db:is_follow(Pid, MikeId))
 	 end
        },
-       { "フォローしたユーザを削除する",
+
+       { "フォローしているユーザをフォロー対象から外す",
 	 fun() ->
 		 Pid = whereis(follow_db_server),
 		 {ok, TomUser} = user_db:lookup_name(tom),
@@ -54,58 +55,48 @@ save_get_test_() ->
 		 ?assertEqual(false, follow_db:is_follow(Pid, TomId)),
 		 ?assertEqual(false, follow_db:is_follow(Pid, MikeId))
 	 end
+       },
+
+       { "フォローユーザのIDのリストを取得する",
+	 fun() ->
+		 Pid = whereis(follow_db_server),
+		 {ok, TomUser} = user_db:lookup_name(tom),
+		 {ok, MikeUser} = user_db:lookup_name(mike),
+		 TomId = TomUser#user.id,
+		 MikeId = MikeUser#user.id,
+		 
+		 follow_db:save_follow_user(Pid, TomId),
+		 ?assertEqual([TomId], follow_db:get_follow_ids(Pid)),
+		 
+		 follow_db:save_follow_user(Pid, MikeId),
+		 ?assertEqual([TomId, MikeId], follow_db:get_follow_ids(Pid))
+	 end
+       },
+
+       { "全てのフォロワーに特定の処理を実行する",
+	 fun() ->
+		 Pid = whereis(follow_db_server),
+		 {ok, TomUser} = user_db:lookup_name(tom),
+		 {ok, MikeUser} = user_db:lookup_name(mike),
+		 TomId = TomUser#user.id,
+		 MikeId = MikeUser#user.id,
+		 
+		 follow_db:save_follow_user(Pid, TomId),
+		 follow_db:save_follow_user(Pid, MikeId),
+		 
+		 TestPid = self(),
+		 
+		 follow_db:map_do(Pid,
+				  fun(Follow) ->
+					  TestPid ! {test, Follow#follow.id}
+				  end),
+		 
+		 TestPid ! {ok, finish},
+		 Results = collect_results([]),
+		 SortedIds = lists:sort([MikeId, TomId]),
+		 ?assertEqual(SortedIds, Results)
+	 end
        }
-      ]
-     }
-    }.
-
-get_ids_test_() ->
-    {inorder,
-     {setup, ?Setup, ?Clearnup,
-      [
-       fun() ->
-	       Pid = whereis(follow_db_server),
-	       {ok, TomUser} = user_db:lookup_name(tom),
-	       {ok, MikeUser} = user_db:lookup_name(mike),
-	       TomId = TomUser#user.id,
-	       MikeId = MikeUser#user.id,
-
-	       follow_db:save_follow_user(Pid, TomId),
-	       ?assertEqual([TomId], follow_db:get_follow_ids(Pid)),
-
-	       follow_db:save_follow_user(Pid, MikeId),
-	       ?assertEqual([TomId, MikeId], follow_db:get_follow_ids(Pid))
-       end
-      ]
-     }
-    }.
-
-map_do_test_() ->
-    {inorder,
-     {setup, ?Setup, ?Clearnup,
-      [
-       fun() ->
-	       Pid = whereis(follow_db_server),
-	       {ok, TomUser} = user_db:lookup_name(tom),
-	       {ok, MikeUser} = user_db:lookup_name(mike),
-	       TomId = TomUser#user.id,
-	       MikeId = MikeUser#user.id,
-
-	       follow_db:save_follow_user(Pid, TomId),
-	       follow_db:save_follow_user(Pid, MikeId),
-
-	       TestPid = self(),
-
-	       follow_db:map_do(Pid,
-				fun(Follow) ->
-					TestPid ! {test, Follow#follow.id}
-				end),
-
-	       TestPid ! {ok, finish},
-	       Results = collect_results([]),
-	       SortedIds = lists:sort([MikeId, TomId]),
-	       ?assertEqual(SortedIds, Results)
-       end
       ]
      }
     }.
