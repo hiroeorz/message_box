@@ -29,7 +29,7 @@ MessageBox is Twitter clone using Erlang (for plactice).
  > message_box:send_message(UserId, "mypassword", "this is my first message").
 
  %% follow other user
- > message_box:follow(UserId, "mypasswod", OtherUserId).
+ > message_box:follow(UserId, "mypassword", OtherUserId).
 
  %% getting home timeline(max message count 40)
  > message_box:get_home_timeline(UserId, 40).
