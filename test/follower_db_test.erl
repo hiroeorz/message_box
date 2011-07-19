@@ -5,6 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("../src/user.hrl").
 -include("../src/message.hrl").
+-include("../src/app_config.hrl").
 -export([setup_server/0]).
 
 -define(Setup, fun() -> 

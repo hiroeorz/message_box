@@ -3,6 +3,7 @@
 
 -module(message_box).
 -include("user.hrl").
+-include("app_config.hrl").
 -export([init/1]).
 -export([start/0, start/1, stop/0]).
 -export([authenticate/2, get_message/1, create_user/3, send_message/3, 
@@ -20,11 +21,18 @@ init(UserDbFilePath) ->
     user_db:start(UserDbFilePath),
     user_manager:start(),
     user_manager:start_all_users(),
+    start_ruby_server(),
     process_flag(trap_exit, true),
     loop({date()}).
 
 stop() ->
     call(stop, []).
+
+start_ruby_server() ->
+    start_ruby_server(?RUBY_PORT).
+
+start_ruby_server(Port) ->
+    spawn_link(rulang, start_server, [Port]).
 
 %%
 %% @doc export functions

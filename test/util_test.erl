@@ -4,10 +4,10 @@
 -module(util_test).
 -include_lib("eunit/include/eunit.hrl").
 -include("../src/user.hrl").
+-include("../src/app_config.hrl").
 
 -define(Setup, fun() -> crypto:start() end).
 -define(Cleanup, fun(_) -> crypto:stop() end).
-
 
 all_test_() ->
     {inorder,

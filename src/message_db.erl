@@ -3,6 +3,7 @@
 
 -module(message_db).
 -include("message.hrl").
+-include("app_config.hrl").
 -include("user.hrl").
 
 -export([init/2]).

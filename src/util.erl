@@ -5,6 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("user.hrl").
 -include("message.hrl").
+-include("app_config.hrl").
 -export([get_user_from_message_id/1, get_user_id_from_message_id/1, 
 	 formatted_number/2, formatted_number/3, get_timeline_ids/4,
 	 get_reply_list/1, is_reply_text/1,

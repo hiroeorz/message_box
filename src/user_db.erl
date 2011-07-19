@@ -4,7 +4,7 @@
 -module(user_db).
 -include_lib("eunit/include/eunit.hrl").
 -include("user.hrl").
-
+-include("app_config.hrl").
 -export([init/1]).
 -export([start/0, start/1, stop/0, loop/1,
 	 call/2, reply/3, 

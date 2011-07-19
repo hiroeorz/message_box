@@ -4,7 +4,7 @@
 -module(mentions_db).
 -include("message.hrl").
 -include("user.hrl").
-
+-include("app_config.hrl").
 -export([init/2]).
 -export([start/2, stop/1]).
 -export([save_message_id/2, get_timeline/2]).
