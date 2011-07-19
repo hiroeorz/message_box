@@ -6,7 +6,7 @@
 -export([init/1]).
 -export([start/0, start/1, stop/0]).
 -export([authenticate/2, get_message/1, create_user/3, send_message/3, 
-	 follow/3, is_follow/2,
+	 follow/3, unfollow/3, is_follow/2,
 	 get_home_timeline/2, get_mentions_timeline/2, get_sent_timeline/2]).
 
 start() ->
@@ -44,6 +44,9 @@ send_message(Id, Password, Message) ->
 
 follow(UserId1, Password, UserId2) ->
     spawn_call(follow, [UserId1, Password, UserId2]).
+
+unfollow(UserId1, Password, UserId2) ->
+    spawn_call(unfollow, [UserId1, Password, UserId2]).
 
 get_home_timeline(UserId_OR_Name, Count) ->
     spawn_call(get_home_timeline, [UserId_OR_Name, Count]).    
@@ -136,6 +139,9 @@ handle_request(send_message, [Id, Password, Message]) ->
 
 handle_request(follow, [UserId1, Password, UserId2]) ->
     m_user:follow(UserId1, Password, UserId2);
+
+handle_request(unfollow, [UserId1, Password, UserId2]) ->
+    m_user:unfollow(UserId1, Password, UserId2);
 
 handle_request(get_home_timeline, [UserId_OR_Name, Count]) ->
     m_user:get_home_timeline(UserId_OR_Name, Count);

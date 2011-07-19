@@ -25,16 +25,36 @@ save_get_test_() ->
     {inorder,
      {setup, ?Setup, ?Clearnup,
       [
-       fun() ->
-	       Pid = whereis(follow_db_server),
-	       {ok, TomUser} = user_db:lookup_name(tom),
-	       {ok, MikeUser} = user_db:lookup_name(mike),
-	       TomId = TomUser#user.id,
-	       MikeId = MikeUser#user.id,
-	       ?assertEqual(ok, follow_db:save_follow_user(Pid, TomId)),
-	       ?assertEqual(true, follow_db:is_follow(Pid, TomId)),
-	       ?assertEqual(false, follow_db:is_follow(Pid, MikeId))
-       end
+       { "フォローしたユーザを保存する",
+	 fun() ->
+		 Pid = whereis(follow_db_server),
+		 {ok, TomUser} = user_db:lookup_name(tom),
+		 {ok, MikeUser} = user_db:lookup_name(mike),
+		 TomId = TomUser#user.id,
+		 MikeId = MikeUser#user.id,
+		 ?assertEqual(ok, follow_db:save_follow_user(Pid, TomId)),
+		 ?assertEqual(true, follow_db:is_follow(Pid, TomId)),
+		 ?assertEqual(false, follow_db:is_follow(Pid, MikeId))
+	 end
+       },
+       { "フォローしたユーザを削除する",
+	 fun() ->
+		 Pid = whereis(follow_db_server),
+		 {ok, TomUser} = user_db:lookup_name(tom),
+		 {ok, MikeUser} = user_db:lookup_name(mike),
+		 TomId = TomUser#user.id,
+		 MikeId = MikeUser#user.id,
+
+		 ?assertEqual({ok, deleted}, 
+			      follow_db:delete_follow_user(Pid, TomId)),
+
+		 ?assertEqual({error, not_following}, 
+			      follow_db:delete_follow_user(Pid, MikeId)),
+
+		 ?assertEqual(false, follow_db:is_follow(Pid, TomId)),
+		 ?assertEqual(false, follow_db:is_follow(Pid, MikeId))
+	 end
+       }
       ]
      }
     }.

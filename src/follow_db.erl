@@ -8,7 +8,8 @@
 
 -export([init/1]).
 -export([start/1, stop/1]).
--export([save_follow_user/2, get_follow_ids/1, map_do/2, is_follow/2]).
+-export([save_follow_user/2, delete_follow_user/2, get_follow_ids/1, 
+	 map_do/2, is_follow/2]).
 
 %%
 %% @doc initial setup functions
@@ -52,6 +53,9 @@ close_tables(Device) ->
 
 save_follow_user(Pid, Id) ->
     call(Pid, save_follow_user, [Id]).
+
+delete_follow_user(Pid, Id) ->
+    call(Pid, delete_follow_user, [Id]).
 
 get_follow_ids(Pid) ->
     reference_call(Pid, get_follow_ids, []).
@@ -124,6 +128,17 @@ handle_request(save_follow_user, [User, Id]) ->
 	    ets:insert(Device, Follow),
 	    dets:insert(DiscName, Follow),
 	    ok
+    end;
+
+handle_request(delete_follow_user, [User, Id]) ->    
+    case is_following(User, Id) of
+	true ->
+	    Device = db_name(User#user.name),
+	    {DiscName, _} = dets_info(Device),
+	    ets:delete(Device, Id),
+	    dets:delete(DiscName, Id),
+	    {ok, deleted};
+	false -> {error, not_following}
     end;
 
 handle_request(map_do, [User, Fun]) ->

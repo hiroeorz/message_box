@@ -8,7 +8,7 @@
 -export([start/1, stop/1]).
 -export([send_message/3, get_message/2, get_sent_timeline/2, 
 	 get_home_timeline/2, save_to_home/2, save_to_home/3,
-	 follow/3, add_follower/2, get_follower_ids/1, is_follow/2,
+	 follow/3, unfollow/3, add_follower/2, get_follower_ids/1, is_follow/2,
 	 save_to_mentions/2, get_mentions_timeline/2]).
 
 -define(USER_MANAGER, user_manager).
@@ -65,6 +65,9 @@ save_to_home(UserName_OR_Id, MessageId, IsReplyText) ->
 
 follow(UserName_OR_Id, Password, UserId) ->
     call(UserName_OR_Id, follow, [Password, UserId]).
+
+unfollow(UserName_OR_Id, Password, UserId) ->
+    call(UserName_OR_Id, unfollow, [Password, UserId]).
 
 add_follower(UserName_OR_Id, UserId) ->
     call(UserName_OR_Id, add_follower, [UserId]).        
@@ -201,6 +204,20 @@ handle_request(follow, [{User, _, _, _, FollowDB_Pid, _}, Password, UserId]) ->
 		    follow_db:save_follow_user(FollowDB_Pid, 
 					       FollowUser#user.id),
 		    m_user:add_follower(FollowUser#user.id, User#user.id);
+		Other -> Other
+	    end;
+	Other -> Other
+    end;
+
+handle_request(unfollow, 
+	       [{User, _, _, _, FollowDB_Pid, _}, Password, UserId]) ->
+    case util:authenticate(User, Password) of
+	{ok, authenticated} ->
+	    case user_db:lookup_id(UserId) of
+		{ok, FollowUser} ->
+		    follow_db:delete_follow_user(FollowDB_Pid, 
+						 FollowUser#user.id);
+		    %%m_user:delete_follower(FollowUser#user.id, User#user.id);
 		Other -> Other
 	    end;
 	Other -> Other
