@@ -96,11 +96,23 @@ all_test_() ->
 		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
 		 
 		 message_box:follow(ShinId, "aaa", User1Id),
+		 message_box:follow(ShinId, "aaa", User2Id),
+		 ?assertEqual(true, message_box:is_follow(ShinId, User1Id)),
+		 ?assertEqual(true, message_box:is_follow(ShinId, User2Id))
+	 end 
+       },
+
+       { "他ユーザをアンフォローし、フォローが外れた事を確認",
+	 fun() ->
+		 message_box_test:wait(),
+		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
+		 
+		 message_box:unfollow(ShinId, "aaa", User2Id),
 		 ?assertEqual(true, message_box:is_follow(ShinId, User1Id)),
 		 ?assertEqual(false, message_box:is_follow(ShinId, User2Id))
 	 end 
        },
-	
+		
        { "フォロワーが居ない状態では自分のメッセージは自分のHOMEのみにある",
 	 fun() ->
 		 message_box_test:wait(),
