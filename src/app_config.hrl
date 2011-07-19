@@ -7,4 +7,3 @@
 %%-define(DB_DIR, "./db/").
 -define(USER_DB_FILENAME, "./db/user_db").
 -define(RUBY_PORT, 9900).
-

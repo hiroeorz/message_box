@@ -2,6 +2,7 @@
 %% Description : system management module.
 
 -module(message_box).
+-include_lib("eunit/include/eunit.hrl").
 -include("user.hrl").
 -include("app_config.hrl").
 -export([init/1]).
