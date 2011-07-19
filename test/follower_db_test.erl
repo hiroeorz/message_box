@@ -24,48 +24,68 @@
 save_get_ids_test_() ->
     {inorder,
      {setup, ?Setup, ?Clearnup,
-      [
-       fun() ->
-	       Pid = whereis(follower_db_server),
-	       {ok, TomUser} = user_db:lookup_name(tom),
-	       {ok, MikeUser} = user_db:lookup_name(mike),
-	       TomId = TomUser#user.id,
-	       MikeId = MikeUser#user.id,
-	       ?assertEqual(ok, follower_db:save_follower(Pid, TomId)),
-	       ?assertEqual([TomId], follower_db:get_follower_ids(Pid)),
-	       ?assertEqual(ok, follower_db:save_follower(Pid, MikeId)),
-	       ?assertEqual([TomId, MikeId], follower_db:get_follower_ids(Pid))
-       end
-      ]
-     }
-    }.
+      [{ "フォロワーを保存する",
+	 fun() ->
+		 Pid = whereis(follower_db_server),
+		 {ok, TomUser} = user_db:lookup_name(tom),
+		 {ok, MikeUser} = user_db:lookup_name(mike),
+		 TomId = TomUser#user.id,
+		 MikeId = MikeUser#user.id,
 
-map_do_test_() ->
-    {inorder,
-     {setup, ?Setup, ?Clearnup,
-      [
-       fun() ->
-	       Pid = whereis(follower_db_server),
-	       {ok, TomUser} = user_db:lookup_name(tom),
-	       {ok, MikeUser} = user_db:lookup_name(mike),
-	       TomId = TomUser#user.id,
-	       MikeId = MikeUser#user.id,
+		 ?assertEqual(ok, follower_db:save_follower(Pid, TomId)),
+		 ?assertEqual(ok, follower_db:save_follower(Pid, MikeId))
+	 end
+       },
 
-	       follower_db:save_follower(Pid, TomId),
-	       follower_db:save_follower(Pid, MikeId),
+       { "フォロワーリストを取得する",
+	 fun() ->
+		 Pid = whereis(follower_db_server),
+		 {ok, TomUser} = user_db:lookup_name(tom),
+		 {ok, MikeUser} = user_db:lookup_name(mike),
+		 TomId = TomUser#user.id,
+		 MikeId = MikeUser#user.id,
+		 ?assertEqual([TomId, MikeId], 
+			      follower_db:get_follower_ids(Pid))
+	 end
+       },
 
-	       TestPid = self(),
+       { "フォロワーを削除する(m_user間で使用する、ユーザから使用される事は無い)",
+	 fun() ->
+		 Pid = whereis(follower_db_server),
+		 {ok, TomUser} = user_db:lookup_name(tom),
+		 {ok, MikeUser} = user_db:lookup_name(mike),
+		 TomId = TomUser#user.id,
+		 MikeId = MikeUser#user.id,
+		 ?assertEqual({ok, deleted}, 
+			      follower_db:delete_follower(Pid, TomId)),
+		 ?assertEqual([MikeId], follower_db:get_follower_ids(Pid))
+	 end
+       },
 
-	       follower_db:map_do(Pid,
-				fun(Follower) ->
-					TestPid ! {test, Follower#follower.id}
-				end),
-
-	       TestPid ! {ok, finish},
-	       Results = collect_results([]),
-	       SortedIds = lists:sort([MikeId, TomId]),
-	       ?assertEqual(SortedIds, Results)
-       end
+       { "全てのフォロワーに特定の処理を行う",
+	 fun() ->
+		 Pid = whereis(follower_db_server),
+		 {ok, TomUser} = user_db:lookup_name(tom),
+		 {ok, MikeUser} = user_db:lookup_name(mike),
+		 TomId = TomUser#user.id,
+		 MikeId = MikeUser#user.id,
+		 
+		 follower_db:save_follower(Pid, TomId),
+		 follower_db:save_follower(Pid, MikeId),
+		 
+		 TestPid = self(),
+		 
+		 follower_db:map_do(Pid,
+				    fun(Follower) ->
+					  TestPid ! {test, Follower#follower.id}
+				    end),
+		 
+		 TestPid ! {ok, finish},
+		 Results = collect_results([]),
+		 SortedIds = lists:sort([MikeId, TomId]),
+		 ?assertEqual(SortedIds, Results)
+	 end
+       }
       ]
      }
     }.

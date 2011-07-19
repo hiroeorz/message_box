@@ -8,7 +8,8 @@
 -export([start/1, stop/1]).
 -export([send_message/3, get_message/2, get_sent_timeline/2, 
 	 get_home_timeline/2, save_to_home/2, save_to_home/3,
-	 follow/3, unfollow/3, add_follower/2, get_follower_ids/1, is_follow/2,
+	 follow/3, unfollow/3, add_follower/2, delete_follower/2,
+	 get_follower_ids/1, is_follow/2,
 	 save_to_mentions/2, get_mentions_timeline/2]).
 
 -define(USER_MANAGER, user_manager).
@@ -71,6 +72,9 @@ unfollow(UserName_OR_Id, Password, UserId) ->
 
 add_follower(UserName_OR_Id, UserId) ->
     call(UserName_OR_Id, add_follower, [UserId]).        
+
+delete_follower(UserName_OR_Id, UserId) ->
+    call(UserName_OR_Id, delete_follower, [UserId]).        
 
 get_follower_ids(UserName_OR_Id) ->
     reference_call(UserName_OR_Id, get_follower_ids, []).    
@@ -216,8 +220,8 @@ handle_request(unfollow,
 	    case user_db:lookup_id(UserId) of
 		{ok, FollowUser} ->
 		    follow_db:delete_follow_user(FollowDB_Pid, 
-						 FollowUser#user.id);
-		    %%m_user:delete_follower(FollowUser#user.id, User#user.id);
+						 FollowUser#user.id),
+		    m_user:delete_follower(FollowUser#user.id, User#user.id);
 		Other -> Other
 	    end;
 	Other -> Other
@@ -226,6 +230,12 @@ handle_request(unfollow,
 handle_request(add_follower, [{_, _, _, FollowerDB_Pid, _, _}, UserId]) ->
     case user_db:lookup_id(UserId) of
 	{ok, _User} -> follower_db:save_follower(FollowerDB_Pid, UserId);
+	Other -> Other
+    end;
+
+handle_request(delete_follower, [{_, _, _, FollowerDB_Pid, _, _}, UserId]) ->
+    case user_db:lookup_id(UserId) of
+	{ok, _User} -> follower_db:delete_follower(FollowerDB_Pid, UserId);
 	Other -> Other
     end;
 
