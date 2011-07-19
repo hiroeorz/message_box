@@ -10,6 +10,7 @@
 
 -define(Setup, fun() -> 
 		       ?cmd("mkdir -p /tmp/test_db"), 
+		       message_box_config:load("../test/message_box.conf"),
 		       user_db:start("/tmp/test_db/user_db"),
 		       user_db:add_user(mike, "mike@mail.co.jp", "aaa"),
 		       user_db:add_user(tom, "tom@mail.co.jp", "aaa"),

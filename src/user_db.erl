@@ -17,7 +17,9 @@
 %%
 
 start() ->
-    register(?MODULE, spawn_link(?MODULE, init, [?USER_DB_FILENAME])).
+    message_box_config:load(),
+    {ok, UserDbFilePath} = application:get_env(message_box, user_db_file_path),
+    register(?MODULE, spawn_link(?MODULE, init, [UserDbFilePath])).
 
 start(FileName) ->
     register(?MODULE, spawn_link(?MODULE, init, [FileName])).

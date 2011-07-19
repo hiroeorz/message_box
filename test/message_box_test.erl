@@ -9,8 +9,8 @@
 -export([wait/0, get_id/1, get_id_list/1]).
 
 -define(Setup, fun() -> 
-		       ?cmd("mkdir -p /tmp/test_db"), 
-		       message_box:start("/tmp/test_db/user_db")
+		       ?cmd("mkdir -p /tmp/test_db"),
+		       message_box:start("../test/message_box.conf")
 	       end).
 
 -define(Clearnup, fun(_) ->

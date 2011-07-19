@@ -94,7 +94,8 @@ is_reply_text(Text) ->
 db_info(UserName)->
     DiscName = list_to_atom(atom_to_list(UserName) ++ "_disk"),
     FileName = atom_to_list(UserName) ++ ".db",
-    Path = ?DB_DIR ++ FileName,
+    {ok, DB_DIR} = application:get_env(message_box, database_dir),
+    Path = DB_DIR ++ FileName,
     {DiscName, Path}.
 
 %%

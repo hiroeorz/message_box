@@ -5,20 +5,24 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("message_box.hrl").
 -include("user.hrl").
--export([init/1]).
+-export([init/0]).
 -export([start/0, start/1, stop/0]).
 -export([authenticate/2, get_message/1, create_user/3, send_message/3, 
 	 follow/3, unfollow/3, is_follow/2,
 	 get_home_timeline/2, get_mentions_timeline/2, get_sent_timeline/2]).
 
 start() ->
-    register(?MODULE, spawn(?MODULE, init, [?USER_DB_FILENAME])).
+    message_box_config:load(),
+    register(?MODULE, spawn(?MODULE, init, [])).
 
-start(UserDbFilePath) ->
-    register(?MODULE, spawn(?MODULE, init, [UserDbFilePath])).
+start(ConfigFilePath) ->
+    Path = filename:absname(ConfigFilePath),
+    message_box_config:load(Path),
+    register(?MODULE, spawn(?MODULE, init, [])).
 
-init(UserDbFilePath) ->
+init() ->
     crypto:start(),
+    {ok, UserDbFilePath} = application:get_env(message_box, user_db_file_path),
     user_db:start(UserDbFilePath),
     user_manager:start(),
     user_manager:start_all_users(),
@@ -30,7 +34,8 @@ stop() ->
     call(stop, []).
 
 start_ruby_server() ->
-    start_ruby_server(?RUBY_PORT).
+    {ok, Port} = application:get_env(message_box, ruby_port),
+    start_ruby_server(Port).
 
 start_ruby_server(Port) ->
     spawn_link(rulang, start_server, [Port]).
