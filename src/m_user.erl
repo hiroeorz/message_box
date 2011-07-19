@@ -3,8 +3,8 @@
 
 -module(m_user).
 -include_lib("eunit/include/eunit.hrl").
+-include("message_box.hrl").
 -include("user.hrl").
--include("app_config.hrl").
 -export([init/1]).
 -export([start/1, stop/1]).
 -export([send_message/3, get_message/2, get_sent_timeline/2, 

@@ -2,8 +2,8 @@
 %% Description : database for user messages
 
 -module(message_db).
+-include("message_box.hrl").
 -include("message.hrl").
--include("app_config.hrl").
 -include("user.hrl").
 
 -export([init/2]).

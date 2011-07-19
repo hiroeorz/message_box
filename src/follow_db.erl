@@ -3,9 +3,9 @@
 
 -module(follow_db).
 -include_lib("eunit/include/eunit.hrl").
+-include("message_box.hrl").
 -include("message.hrl").
 -include("user.hrl").
--include("app_config.hrl").
 -export([init/1]).
 -export([start/1, stop/1]).
 -export([save_follow_user/2, delete_follow_user/2, get_follow_ids/1, 

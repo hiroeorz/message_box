@@ -2,8 +2,8 @@
 %% Description : user watcher process
 
 -module(user_manager).
+-include("message_box.hrl").
 -include("user.hrl").
--include("app_config.hrl").
 -export([init/0]).
 -export([start/0, stop/0, start_all_users/0]).
 

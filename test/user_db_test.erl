@@ -4,7 +4,7 @@
 -module(user_db_test).
 -include_lib("eunit/include/eunit.hrl").
 -include("../src/user.hrl").
--include("../src/app_config.hrl").
+-include("../src/message_box.hrl").
 
 -define(Setup1, fun() -> 
 		       ?cmd("mkdir -p /tmp/test_db"), 

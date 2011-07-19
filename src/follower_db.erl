@@ -2,9 +2,9 @@
 %% Description : user follow relationship database.
 
 -module(follower_db).
+-include("message_box.hrl").
 -include("message.hrl").
 -include("user.hrl").
--include("app_config.hrl").
 -export([init/1]).
 -export([start/1, stop/1]).
 -export([save_follower/2, delete_follower/2, get_follower_ids/1, map_do/2]).
