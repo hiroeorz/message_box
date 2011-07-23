@@ -6,11 +6,10 @@ MessageBox is Twitter clone using Erlang (for plactice).
 
  $ git clone git://github.com/hiroeorz/message_box.git
  $ cd message_box
- $ ./rebar get-deps
  $ make 
 
 ==Testing
- $ make eunit
+ $ make check
 
 ==Examples
  $ mkdir /tmp/test_db
