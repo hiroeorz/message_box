@@ -6,23 +6,26 @@ LOGDIR=./log
 BEAMDIR=./ebin ./deps/sqlite3/ebin
 DBDIR=./db
 APP_NAME=message_box
+REBAR=./rebar
 
 all: clean compile xref
 
 compile:
-	@./rebar compile
+	@$(REBAR) get-deps compile
 
 xref:
-	@./rebar xref
+	@$(REBAR) xref
 
 clean: 
-	@ ./rebar clean
+	@ $(REBAR) clean
 
-eunit:
-	@./rebar eunit
+check:
+	@rm -rf .eunit
+	@mkdir -p .eunit
+	@$(REBAR) skip_deps=true eunit 
 
 edoc:
-	@./rebar doc
+	@$(REBAR) doc
 
 cleardata:
 	@ rm -rf $(DBDIR)

@@ -8,5 +8,5 @@
                   stdlib
                  ]},
   {mod, { message_box_app, []}},
-  {env, []},
+  {env, []}
  ]}.
