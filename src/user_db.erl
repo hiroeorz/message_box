@@ -18,7 +18,7 @@
 
 start() ->
     message_box_config:load(),
-    {ok, UserDbFilePath} = application:get_env(message_box, user_db_file_path),
+    UserDbFilePath = message_box_config:get(user_db_file_path),
     register(?MODULE, spawn_link(?MODULE, init, [UserDbFilePath])).
 
 start(FileName) ->

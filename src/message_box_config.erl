@@ -3,7 +3,7 @@
 
 -module(message_box_config).
 -include_lib("eunit/include/eunit.hrl").
--export([load/0, load/1]).
+-export([load/0, load/1, get/1]).
 
 load() ->
     {ThisFile, _} = filename:find_src(message_box_config),
@@ -30,3 +30,7 @@ read_config(AppName, ConfigList) ->
 	    application:set_env(AppName, Key, Val),
 	    read_config(AppName, Tail)
     end.
+
+get(Name) ->
+    {ok, Value} = application:get_env(message_box, Name),
+    Value.

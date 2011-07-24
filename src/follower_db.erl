@@ -174,7 +174,7 @@ is_following(User, Id) ->
 
 dets_info(Device)->
     DiscName = list_to_atom(atom_to_list(Device) ++ "_Follower_Disk"),
-    {ok, DB_DIR} = application:get_env(message_box, database_dir),
+    DB_DIR = message_box_config:get(database_dir),
     FileName = DB_DIR ++ atom_to_list(Device),
     {DiscName, FileName}.
 

@@ -22,7 +22,7 @@ start(ConfigFilePath) ->
 
 init() ->
     crypto:start(),
-    {ok, UserDbFilePath} = application:get_env(message_box, user_db_file_path),
+    UserDbFilePath = message_box_config:get(user_db_file_path),
     user_db:start(UserDbFilePath),
     user_manager:start(),
     user_manager:start_all_users(),
@@ -34,7 +34,7 @@ stop() ->
     call(stop, []).
 
 start_ruby_server() ->
-    {ok, Port} = application:get_env(message_box, ruby_port),
+    Port = message_box_config:get(ruby_port),
     start_ruby_server(Port).
 
 start_ruby_server(Port) ->
