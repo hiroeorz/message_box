@@ -11,7 +11,8 @@
 	 get_home_timeline/2, save_to_home/2, save_to_home/3,
 	 follow/3, unfollow/3, add_follower/2, delete_follower/2,
 	 get_follower_ids/1, is_follow/2,
-	 save_to_mentions/2, get_mentions_timeline/2]).
+	 save_to_mentions/2, get_mentions_timeline/2,
+         save_icon/2, get_icon/1]).
 
 -define(USER_MANAGER, user_manager).
 
@@ -32,6 +33,9 @@ init(UserName) ->
     MentionsDB_Pid = mentions_db:start(UserName, DBPid),
     FollowerDB_Pid = follower_db:start(UserName),
     Follow_DB_Pid = follow_db:start(UserName),
+
+    IconDir = message_box_config:get(icon_dir),
+    file:make_dir(IconDir),
 
     user_db:save_pid(User#user.id, self()),
     loop({User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, Follow_DB_Pid,
@@ -85,6 +89,13 @@ save_to_mentions(UserName_OR_Id, MessageId) ->
 
 is_follow(UserName_OR_Id, UserId) ->
     reference_call(UserName_OR_Id, is_follow, [UserId]).
+
+save_icon(UserName_OR_Id, Data) when is_binary(Data) ->
+    call(UserName_OR_Id, save_icon, [Data]).
+
+get_icon(UserName_OR_Id) ->
+    reference_call(UserName_OR_Id, get_icon, []).
+
 
 %%
 %% @doc remote call functions.
@@ -251,7 +262,15 @@ handle_request(save_to_mentions,
     mentions_db:save_message_id(MentionsDB_Pid, MessageId);
 
 handle_request(is_follow, [{_, _, _, _, FollowDB_Pid, _}, FollowId]) ->
-    follow_db:is_follow(FollowDB_Pid, FollowId).
+    follow_db:is_follow(FollowDB_Pid, FollowId);
+
+handle_request(save_icon, [{User, _, _, _, _, _}, Data]) ->
+    Path = util:icon_path(User#user.name),
+    file:write_file(Path, Data);
+
+handle_request(get_icon, [{User, _, _, _, _, _}]) ->
+    Path = util:icon_path(User#user.name),
+    file:read_file(Path).
 
 %%
 %% @doc local functions.

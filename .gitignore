@@ -5,3 +5,4 @@ ebin
 erl_crash.dump
 db
 deps
+.DS_Store

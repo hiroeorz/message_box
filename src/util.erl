@@ -9,7 +9,8 @@
 -export([get_user_from_message_id/1, get_user_id_from_message_id/1, 
 	 formatted_number/2, formatted_number/3, get_timeline_ids/4,
 	 get_reply_list/1, is_reply_text/1,
-	 db_info/1, sleep/1, get_md5_password/2, authenticate/2]).
+	 db_info/1, sleep/1, get_md5_password/2, authenticate/2,
+	 icon_path/1]).
 
 -define(SEPARATOR, "\s\n").
 -define(MD5_KEY1, "message_box").
@@ -128,4 +129,6 @@ authenticate(User, RawPassword) ->
 	_ ->           {error, unauthenticated}
     end.
 	    
- 
+icon_path(Name) when is_atom(Name) -> 
+    Dir = message_box_config:get(icon_dir),
+    Dir ++ atom_to_list(Name).

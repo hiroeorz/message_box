@@ -40,6 +40,22 @@ all_test_() ->
 						     "ccc"))
 	end 
        },
+
+       { "アイコンを登録",
+	 fun() ->
+		 message_box_test:wait(),
+		 {ok, IconData} = file:read_file("../test/sample_image.jpg"),
+		 ?assertEqual(ok, message_box:save_icon(shin, IconData))
+	 end
+       },
+
+       { "アイコンを取得",
+	 fun() ->
+		 {ok, IconData} = file:read_file("../test/sample_image.jpg"),
+		 {ok, ResultData} = message_box:get_icon(shin),
+		 ?assertEqual(IconData, ResultData)    
+	 end
+       },
        
        { "メッセージをポストし、送信したメッセージを取得して内容を照合する",
 	 fun() ->
