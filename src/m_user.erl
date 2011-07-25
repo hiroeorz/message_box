@@ -101,7 +101,10 @@ get_icon(UserName_OR_Id) ->
 %% @doc remote call functions.
 %%
 
-call(UserName_OR_Id, Name, Args)  ->
+call(UserName_OR_Id, Name, Args) when is_list(UserName_OR_Id) ->
+    call(list_to_atom(UserName_OR_Id), Name, Args);
+
+call(UserName_OR_Id, Name, Args) ->
     case user_db:get_pid(UserName_OR_Id) of
 	{ok, Pid} -> 
 	    Pid ! {request, self(), Name, Args},
@@ -111,6 +114,9 @@ call(UserName_OR_Id, Name, Args)  ->
 	    end;
 	Other -> Other
     end.
+
+reference_call(UserName_OR_Id, Name, Args) when is_list(UserName_OR_Id) ->
+    reference_call(list_to_atom(UserName_OR_Id), Name, Args);
 
 reference_call(UserName_OR_Id, Name, Args)  ->
     case user_db:get_pid(UserName_OR_Id) of

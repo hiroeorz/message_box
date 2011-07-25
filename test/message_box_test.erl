@@ -53,7 +53,7 @@ all_test_() ->
 	 fun() ->
 		 {ok, IconData} = file:read_file("../test/sample_image.jpg"),
 		 {ok, ResultData} = message_box:get_icon(shin),
-		 ?assertEqual(IconData, ResultData)    
+		 ?assertEqual(IconData, ResultData)
 	 end
        },
        
@@ -65,7 +65,6 @@ all_test_() ->
 		 {ok, SavedMessageId_0} = message_box:send_message(ShinId,
 								   "aaa",
 								    Message1),
-		 
 		 {ok, SavedMessage_0} = 
 		     message_box:get_message(SavedMessageId_0),
 

@@ -6,6 +6,7 @@ LOGDIR=./log
 BEAMDIR=./ebin ./deps/sqlite3/ebin
 DBDIR=./db
 APP_NAME=message_box
+HOST_NAME=127.0.0.1
 REBAR=./rebar
 
 all: clean compile xref
@@ -31,4 +32,4 @@ cleardata:
 	@ rm -rf $(DBDIR)
 
 boot:
-	@ $(ERL) -pa $(BEAMDIR) -sname $(APP_NAME) -s $(APP_NAME) start
+	@ $(ERL) -pa $(BEAMDIR) -name $(APP_NAME)@$(HOST_NAME) -s $(APP_NAME) start

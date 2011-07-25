@@ -24,6 +24,14 @@ start(ConfigFilePath) ->
 init() ->
     crypto:start(),
     UserDbFilePath = message_box_config:get(user_db_file_path),
+
+    case node() of
+	nonode@nohost -> ok;
+	Node -> 
+	    Cookie = message_box_config:get(cookie),
+	    erlang:set_cookie(Node, Cookie)
+    end,
+
     user_db:start(UserDbFilePath),
     user_manager:start(),
     user_manager:start_all_users(),
