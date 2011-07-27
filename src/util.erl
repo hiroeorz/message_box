@@ -113,7 +113,7 @@ sleep(Msec) when is_integer(Msec) ->
 %% @doc create md5 password
 %%
 
-get_md5_password(User, RawPassword) ->
+get_md5_password(User, RawPassword) when is_list(RawPassword) ->
     Context =  crypto:md5_init(), 
     NewContext0 = crypto:md5_update(Context, RawPassword),
     NewContext1 = crypto:md5_update(NewContext0, atom_to_list(User#user.name)),
@@ -123,7 +123,7 @@ get_md5_password(User, RawPassword) ->
     NewContext5 = crypto:md5_update(NewContext4, ?MD5_KEY3),
     crypto:md5_final(NewContext5).
     
-get_onetime_password(User, RawPassword) ->
+get_onetime_password(User, RawPassword) when is_list(RawPassword) ->
     Context =  crypto:md5_init(), 
     NewContext0 = crypto:md5_update(Context, RawPassword),
     NewContext1 = crypto:md5_update(NewContext0, atom_to_list(User#user.name)),

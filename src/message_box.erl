@@ -53,7 +53,10 @@ start_ruby_server(Port) ->
 %% @doc export functions
 %%
 
-authenticate(UserName, Password) ->
+authenticate(UserName, Password) when is_list(UserName) ->
+    authenticate(list_to_atom(UserName), Password);
+
+authenticate(UserName, Password) when is_atom(UserName) ->
     spawn_call(authenticate, [UserName, Password]).    
 
 get_message(MessageId) ->

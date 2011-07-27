@@ -44,7 +44,7 @@ all_test_() ->
        { "ユーザIDとパスワードの組み合わせが間違っていたらユーザ認証に失敗する",
 	 fun() ->
 		 message_box_test:wait(),
-		 {error, unauthenticated} = message_box:authenticate(shin, 
+		 {error, unauthenticated} = message_box:authenticate("shin", 
 								     "invalid")
 	 end
        },
@@ -52,7 +52,8 @@ all_test_() ->
        { "ユーザ認証に成功してワンタイムパスワードを入手する",
 	 fun() ->
 		 message_box_test:wait(),
-		 {ok, OneTimePassword} = message_box:authenticate(shin, "aaa"),
+		 {ok, OneTimePassword} = message_box:authenticate("shin", 
+								  "aaa"),
 		 ?assertEqual(true, is_binary(OneTimePassword))
 	 end
        },
@@ -77,7 +78,8 @@ all_test_() ->
 		 message_box_test:wait(),
 		 ShinId = message_box_test:get_id(shin),
 		 Message1 = "hello world",
-		 {ok, OneTimePassword} = message_box:authenticate(shin, "aaa"),
+		 {ok, OneTimePassword} = message_box:authenticate("shin", 
+								  "aaa"),
 
 		 {ok, SavedMessageId_0} = 
 		     message_box:send_message(ShinId, OneTimePassword, 
