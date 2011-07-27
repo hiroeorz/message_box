@@ -41,6 +41,22 @@ all_test_() ->
 	end 
        },
 
+       { "ユーザIDとパスワードの組み合わせが間違っていたらユーザ認証に失敗する",
+	 fun() ->
+		 message_box_test:wait(),
+		 {error, unauthenticated} = message_box:authenticate(shin, 
+								     "invalid")
+	 end
+       },
+
+       { "ユーザ認証に成功してワンタイムパスワードを入手する",
+	 fun() ->
+		 message_box_test:wait(),
+		 {ok, OneTimePassword} = message_box:authenticate(shin, "aaa"),
+		 ?assertEqual(true, is_binary(OneTimePassword))
+	 end
+       },
+
        { "アイコンを登録",
 	 fun() ->
 		 message_box_test:wait(),

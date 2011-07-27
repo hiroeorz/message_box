@@ -147,8 +147,19 @@ handle_stop([From]) ->
     exit(from_root).
 
 handle_request(authenticate, [UserName, Password]) ->
-    User = user_db:lookup_name(UserName),
-    util:authenticate(User, Password);
+    case user_db:lookup_name(UserName) of
+    {ok, User} -> 
+	    case util:authenticate(User, Password) of
+		{ok, authenticated} -> 
+		    OneTimePassword = util:get_onetime_password(User, 
+								Password),
+		    m_user:set_onetime_password(User#user.id, OneTimePassword),
+		    {ok, OneTimePassword};
+		Other -> Other
+	    end;
+
+	_Other -> {error, unauthenticated}
+    end;
 
 handle_request(get_message, [MessageId]) ->
     message_db:get_message(MessageId);

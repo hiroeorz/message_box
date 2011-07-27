@@ -9,8 +9,9 @@
 -export([get_user_from_message_id/1, get_user_id_from_message_id/1, 
 	 formatted_number/2, formatted_number/3, get_timeline_ids/4,
 	 get_reply_list/1, is_reply_text/1,
-	 db_info/1, sleep/1, get_md5_password/2, authenticate/2,
-	 icon_path/1]).
+	 db_info/1, sleep/1, icon_path/1,
+	 get_md5_password/2, get_onetime_password/2, 
+	 authenticate/2, authenticate/3]).
 
 -define(SEPARATOR, "\s\n").
 -define(MD5_KEY1, "message_box").
@@ -122,6 +123,43 @@ get_md5_password(User, RawPassword) ->
     NewContext5 = crypto:md5_update(NewContext4, ?MD5_KEY3),
     crypto:md5_final(NewContext5).
     
+get_onetime_password(User, RawPassword) ->
+    Context =  crypto:md5_init(), 
+    NewContext0 = crypto:md5_update(Context, RawPassword),
+    NewContext1 = crypto:md5_update(NewContext0, atom_to_list(User#user.name)),
+    NewContext2 = crypto:md5_update(NewContext1, User#user.mail),
+    NewContext3 = crypto:md5_update(NewContext2, ?MD5_KEY1),
+    NewContext4 = crypto:md5_update(NewContext3, ?MD5_KEY2),
+    NewContext5 = crypto:md5_update(NewContext4, ?MD5_KEY3),
+
+    {Year, Month, Day} = date(),
+    {Hour, Min, Sec} = time(),
+    DateTimeStr = 
+	integer_to_list(Year) ++ 
+	integer_to_list(Month) ++ 
+	integer_to_list(Day) ++
+	integer_to_list(Hour) ++
+	integer_to_list(Min) ++
+	integer_to_list(Sec),
+
+    NewContext6 = crypto:md5_update(NewContext5, DateTimeStr),
+    crypto:md5_final(NewContext6).
+
+exist_in_list(List, Elem) ->
+    case List of
+	[] -> false;
+	[E | Tail] -> case E of
+			  Elem -> true;
+			  _ -> exist_in_list(Tail, Elem)
+		      end
+    end.
+
+authenticate(User, Password, OneTimePasswordList) ->
+    case exist_in_list(OneTimePasswordList, Password) of
+	true -> {ok, authenticated};
+	false -> authenticate(User, Password)
+    end. 
+
 authenticate(User, RawPassword) ->
     Md5Password = get_md5_password(User, RawPassword),
     case User#user.password of
