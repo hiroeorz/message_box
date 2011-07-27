@@ -59,7 +59,6 @@ all_test_() ->
 
        { "アイコンを登録",
 	 fun() ->
-		 message_box_test:wait(),
 		 {ok, IconData} = file:read_file("../test/sample_image.jpg"),
 		 ?assertEqual(ok, message_box:save_icon(shin, IconData))
 	 end
@@ -73,14 +72,16 @@ all_test_() ->
 	 end
        },
        
-       { "メッセージをポストし、送信したメッセージを取得して内容を照合する",
+       { "ワンタイムパスワードを使ってメッセージをポストし、送信したメッセージを取得して内容を照合する",
 	 fun() ->
 		 message_box_test:wait(),
 		 ShinId = message_box_test:get_id(shin),
 		 Message1 = "hello world",
-		 {ok, SavedMessageId_0} = message_box:send_message(ShinId,
-								   "aaa",
-								    Message1),
+		 {ok, OneTimePassword} = message_box:authenticate(shin, "aaa"),
+
+		 {ok, SavedMessageId_0} = 
+		     message_box:send_message(ShinId, OneTimePassword, 
+					      Message1),
 		 {ok, SavedMessage_0} = 
 		     message_box:get_message(SavedMessageId_0),
 
