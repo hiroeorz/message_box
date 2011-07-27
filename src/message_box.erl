@@ -62,7 +62,10 @@ authenticate(UserName, Password) when is_atom(UserName) ->
 get_message(MessageId) ->
     spawn_call(get_message, [MessageId]).
 
-create_user(UserName, Mail, Password) ->
+create_user(UserName, Mail, Password) when is_list(UserName) ->
+    create_user(list_to_atom(UserName), Mail, Password);
+
+create_user(UserName, Mail, Password) when is_atom(UserName) ->
     spawn_call(create_user, [UserName, Mail, Password]).
 
 send_message(Id, Password, Message) ->

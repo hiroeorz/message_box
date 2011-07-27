@@ -15,6 +15,7 @@
          save_icon/2, get_icon/1, set_onetime_password/2]).
 
 -define(USER_MANAGER, user_manager).
+-define(MaxSessionCount, 10).
 
 start(UserName) ->
     spawn_link(?MODULE, init, [UserName]).
@@ -142,7 +143,8 @@ loop(State = {User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, Follow_DB_Pid,
 	    reply(From, Pid, handle_stop(State));
 
 	{request, From, set_onetime_password, [OneTimePassword]} ->
-	    NewList = [OneTimePassword | OneTimePasswordList],
+	    NewList = add_one_time_password(OneTimePasswordList, 
+					    OneTimePassword),
 	    reply(From, Pid, ok),
 	    loop({User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, 
 		  Follow_DB_Pid, MentionsDB_Pid, 
@@ -292,9 +294,8 @@ handle_request(get_icon, [{User, _, _, _, _, _, _}]) ->
     file:read_file(Path).
 
 %%
-%% @doc local functions.
+%% @doc send message to followers and saved to there's home_db.
 %%
-
 send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid, IsReplyTo) ->
     Fun1 = fun(Follower) ->
 		   m_user:save_to_home(Follower#follower.id, MessageId, 
@@ -305,7 +306,10 @@ send_to_followers(MessageId, FollowerDB_Pid, HomeDB_Pid, IsReplyTo) ->
     Fun2 = fun(Follower) -> spawn(fun() -> Fun1(Follower) end) end,
     follower_db:map_do(FollowerDB_Pid, Fun2),
     home_db:save_message_id(HomeDB_Pid, MessageId).
-    
+
+%%
+%% @doc send reply to destination user. 
+%%    
 send_to_replies(MessageId, ReplyToList) ->
     case ReplyToList of
 	[] -> ok;
@@ -317,3 +321,18 @@ send_to_replies(MessageId, ReplyToList) ->
 		  end)
     end.
 	    
+%%
+%% @doc Add onetime password to State list. 
+%%      and delete oldest password if list is too long.
+%%
+add_one_time_password(List, OneTimePassword) ->
+    NewList = [OneTimePassword | List],
+    ListLength = length(NewList),
+
+    if ListLength > ?MaxSessionCount ->
+	    [_Deleted | ResultList] = lists:reverse(NewList),
+	    lists:reverse(ResultList);
+       true ->
+	    NewList
+    end.
+
