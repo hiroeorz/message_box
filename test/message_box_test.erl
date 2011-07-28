@@ -29,7 +29,7 @@ all_test_() ->
 		?assertMatch({ok, _AssignedUser}, 
 			     message_box:create_user(shin, 
 						     "shin@mail.jp", 
-						     "aaa")),
+						     "password")),
 		?assertMatch({ok, _AssignedUser}, 
 			     message_box:create_user(user1, 
 						     "user1@mail.jp", 
@@ -37,16 +37,26 @@ all_test_() ->
 		?assertMatch({ok, _AssignedUser}, 
 			     message_box:create_user(user2, 
 						     "user2@mail.jp", 
-						     "ccc"))
+						     "ccc")),
+		message_box_test:wait()
 	end 
        },
 
        { "ユーザIDとパスワードの組み合わせが間違っていたらユーザ認証に失敗する",
 	 fun() ->
-		 message_box_test:wait(),
 		 {error, unauthenticated} = message_box:authenticate("shin", 
 								     "invalid")
 	 end
+       },
+
+       {"ユーザを更新",
+	fun() ->
+		{ok, OneTimePassword} = message_box:authenticate("shin", 
+								 "password"),
+		?assertMatch({ok, _},
+			     message_box:update_user(shin, OneTimePassword, 
+						     "shin_1@mail.jp", "aaa"))
+	end
        },
 
        { "ユーザ認証に成功してワンタイムパスワードを入手する",

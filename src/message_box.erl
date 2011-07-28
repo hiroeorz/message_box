@@ -7,7 +7,8 @@
 -include("user.hrl").
 -export([init/0]).
 -export([start/0, start/1, stop/0]).
--export([authenticate/2, get_message/1, create_user/3, send_message/3, 
+-export([authenticate/2, create_user/3, update_user/4, 
+	 send_message/3, get_message/1,
 	 follow/3, unfollow/3, is_follow/2,
 	 get_home_timeline/2, get_mentions_timeline/2, get_sent_timeline/2,
 	 save_icon/3, get_icon/1]).
@@ -67,6 +68,12 @@ create_user(UserName, Mail, Password) when is_list(UserName) ->
 
 create_user(UserName, Mail, Password) when is_atom(UserName) ->
     spawn_call(create_user, [UserName, Mail, Password]).
+
+update_user(UserName, AuthPassword, Mail, Password) when is_list(UserName) ->
+    update_user(list_to_atom(UserName), AuthPassword, Mail, Password);
+
+update_user(UserName, AuthPassword, Mail, Password) when is_atom(UserName) ->
+    spawn_call(update_user, [UserName, AuthPassword, Mail, Password]).
 
 send_message(Id, Password, Message) ->
     spawn_call(send_message, [Id, Password, Message]).
@@ -180,6 +187,14 @@ handle_request(create_user, [UserName, Mail, Password]) ->
 	    {ok, AssignedUser};
 	{error, already_exist} ->
 	    {error, already_exist}
+    end;
+
+handle_request(update_user, [UserName, AuthPassword, Mail, Password]) ->
+    case user_db:lookup_name(UserName) of
+	{ok, _User} ->
+	    m_user:update(UserName, AuthPassword, Mail, Password);
+	_Other -> 
+	    {error, user_not_exist}
     end;
 
 handle_request(send_message, [Id, Password, Message]) ->
