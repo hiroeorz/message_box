@@ -10,7 +10,7 @@
 -export([authenticate/2, get_message/1, create_user/3, send_message/3, 
 	 follow/3, unfollow/3, is_follow/2,
 	 get_home_timeline/2, get_mentions_timeline/2, get_sent_timeline/2,
-	 save_icon/2, get_icon/1]).
+	 save_icon/3, get_icon/1]).
 
 start() ->
     message_box_config:load(),
@@ -89,8 +89,10 @@ get_sent_timeline(UserId_OR_Name, Count) ->
 is_follow(UserId_OR_Name, Id) ->
     spawn_call(is_follow, [UserId_OR_Name, Id]).
 
-save_icon(UserId_OR_Name, Data) when is_binary(Data) ->
-    call(save_icon, [UserId_OR_Name, Data]).
+save_icon(UserId_OR_Name, Data, ContentType) when is_list(UserId_OR_Name) ->
+    save_icon(list_to_atom(UserId_OR_Name), Data, ContentType);
+save_icon(UserId_OR_Name, Data, ContentType) when is_binary(Data) ->
+    call(save_icon, [UserId_OR_Name, Data, ContentType]).
 
 get_icon(UserId_OR_Name) ->
     call(get_icon, [UserId_OR_Name]).
@@ -201,8 +203,8 @@ handle_request(get_sent_timeline, [UserId_OR_Name, Count]) ->
 handle_request(is_follow, [UserId_OR_Name, Id]) ->
     m_user:is_follow(UserId_OR_Name, Id);
 
-handle_request(save_icon, [UserId_OR_Name, Data]) ->
-    m_user:save_icon(UserId_OR_Name, Data);
+handle_request(save_icon, [UserId_OR_Name, Data, ContentType]) ->
+    m_user:save_icon(UserId_OR_Name, Data, ContentType);
 
 handle_request(get_icon, [UserId_OR_Name]) ->
     m_user:get_icon(UserId_OR_Name).

@@ -12,10 +12,14 @@
 	 follow/3, unfollow/3, add_follower/2, delete_follower/2,
 	 get_follower_ids/1, is_follow/2,
 	 save_to_mentions/2, get_mentions_timeline/2,
-         save_icon/2, get_icon/1, set_onetime_password/2]).
+         save_icon/3, get_icon/1, set_onetime_password/2]).
 
 -define(USER_MANAGER, user_manager).
 -define(MaxSessionCount, 10).
+-define(FILE_EXTENTION_LIST, [".jpg", ".gif", ".png"]).
+-define(CONTENT_TYPE_LIST, [{".jpg", "image/jpg"}, 
+			    {".png", "image/png"}, 
+			    {".gif", "image/gif"}]).
 
 start(UserName) ->
     spawn_link(?MODULE, init, [UserName]).
@@ -91,8 +95,8 @@ save_to_mentions(UserName_OR_Id, MessageId) ->
 is_follow(UserName_OR_Id, UserId) ->
     reference_call(UserName_OR_Id, is_follow, [UserId]).
 
-save_icon(UserName_OR_Id, Data) when is_binary(Data) ->
-    call(UserName_OR_Id, save_icon, [Data]).
+save_icon(UserName_OR_Id, Data, ContentType) when is_binary(Data) ->
+    call(UserName_OR_Id, save_icon, [Data, ContentType]).
 
 get_icon(UserName_OR_Id) ->
     reference_call(UserName_OR_Id, get_icon, []).
@@ -285,13 +289,73 @@ handle_request(save_to_mentions,
 handle_request(is_follow, [{_, _, _, _, FollowDB_Pid, _, _}, FollowId]) ->
     follow_db:is_follow(FollowDB_Pid, FollowId);
 
-handle_request(save_icon, [{User, _, _, _, _, _, _OneTimePasswordList}, Data]) ->
-    Path = util:icon_path(User#user.name),
+handle_request(save_icon, [{User, _, _, _, _, _, _OneTimePasswordList}, 
+			   Data, ContentType]) ->
+    delete_icon(User),
+    BasePath = util:icon_path(User#user.name),
+    Path = case ContentType of
+	       "image/jpeg" -> BasePath ++ ".jpg";
+	       "image/png" -> BasePath ++ ".png";
+	       "image/gif" -> BasePath ++ ".gif";
+	       _ -> {error, not_supported_content_type}
+	   end,
+
     file:write_file(Path, Data);
 
 handle_request(get_icon, [{User, _, _, _, _, _, _}]) ->
-    Path = util:icon_path(User#user.name),
-    file:read_file(Path).
+    read_icon(User).
+
+%%
+%% @doc search content-type from file extention.
+%%
+search_content_type(Extention) ->
+    search_content_type(Extention, ?CONTENT_TYPE_LIST).
+
+search_content_type(_Extention, []) ->
+    {error, not_supported_contet_type};
+
+search_content_type(Extention, ContentTypeList) ->
+    case ContentTypeList of
+	[{Extention, ContentType} | _Tail] -> {ok, ContentType};
+	[_ | Tail] -> search_content_type(Extention, Tail)
+    end.
+
+%%
+%% @doc read user icon image file.
+%%
+read_icon(User) ->
+    read_icon(User, ?FILE_EXTENTION_LIST).
+
+read_icon(User, ExtList) ->
+    case ExtList of
+	[] -> {error, not_exist};
+	[Ext | Tail] ->
+	    BasePath = util:icon_path(User#user.name),
+	    Path = BasePath ++ Ext,
+
+	    case file:read_file(Path) of
+		{ok, Binary}    ->
+		    {ok, ContentType} = search_content_type(Ext),
+		    {ok, Binary, ContentType};
+		{error, enoent} -> read_icon(User, Tail)
+	    end
+    end.
+
+%%
+%% @doc delete user icon image file.
+%%
+delete_icon(User) ->
+    delete_icon(User, ?FILE_EXTENTION_LIST).
+
+delete_icon(User, ExtList) ->
+    case ExtList of
+	[] -> ok;
+	[Ext | Tail] ->
+	    BasePath = util:icon_path(User#user.name),
+	    Path = BasePath ++ Ext,
+	    file:delete(Path),
+	    delete_icon(User, Tail)
+    end.
 
 %%
 %% @doc send message to followers and saved to there's home_db.

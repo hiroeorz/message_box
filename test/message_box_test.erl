@@ -61,15 +61,17 @@ all_test_() ->
        { "アイコンを登録",
 	 fun() ->
 		 {ok, IconData} = file:read_file("../test/sample_image.jpg"),
-		 ?assertEqual(ok, message_box:save_icon(shin, IconData))
+		 ?assertEqual(ok, message_box:save_icon(shin, IconData, 
+							"image/jpeg"))
 	 end
        },
 
        { "アイコンを取得",
 	 fun() ->
 		 {ok, IconData} = file:read_file("../test/sample_image.jpg"),
-		 {ok, ResultData} = message_box:get_icon(shin),
-		 ?assertEqual(IconData, ResultData)
+		 {ok, ResultData, ContentType} = message_box:get_icon(shin),
+		 ?assertEqual(IconData, ResultData),
+		 ?assertEqual(ContentType, "image/jpg")
 	 end
        },
        
