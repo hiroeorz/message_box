@@ -59,6 +59,15 @@ all_test_() ->
 	end
        },
 
+       {"ユーザを更新",
+	fun() ->
+		{ok, User} = message_box:get_user("shin"),
+		?assertEqual(
+		   {{id, 1}, {name, "shin"}, {mail, "shin_1@mail.jp"}},
+		   User)
+	end
+       },
+
        { "ユーザ認証に成功してワンタイムパスワードを入手する",
 	 fun() ->
 		 message_box_test:wait(),

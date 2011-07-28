@@ -65,7 +65,10 @@ delete_user(Id)->
 lookup_id(Id)->
     reference_call(lookup_id, [Id]).
 
-lookup_name(Name)->
+lookup_name(Name) when is_list(Name)->
+    lookup_name(list_to_atom(Name));
+
+lookup_name(Name) when is_atom(Name) ->
     reference_call(lookup_name, [Name]).
 
 lookup_pid(Pid) ->

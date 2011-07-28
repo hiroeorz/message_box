@@ -11,7 +11,7 @@
 	 send_message/3, get_message/1,
 	 follow/3, unfollow/3, is_follow/2,
 	 get_home_timeline/2, get_mentions_timeline/2, get_sent_timeline/2,
-	 save_icon/3, get_icon/1]).
+	 save_icon/3, get_icon/1, get_user/1]).
 
 start() ->
     message_box_config:load(),
@@ -99,10 +99,13 @@ is_follow(UserId_OR_Name, Id) ->
 save_icon(UserId_OR_Name, Data, ContentType) when is_list(UserId_OR_Name) ->
     save_icon(list_to_atom(UserId_OR_Name), Data, ContentType);
 save_icon(UserId_OR_Name, Data, ContentType) when is_binary(Data) ->
-    call(save_icon, [UserId_OR_Name, Data, ContentType]).
+    spawn_call(save_icon, [UserId_OR_Name, Data, ContentType]).
 
 get_icon(UserId_OR_Name) ->
-    call(get_icon, [UserId_OR_Name]).
+    spawn_call(get_icon, [UserId_OR_Name]).
+
+get_user(UserName) ->
+    spawn_call(get_user, [UserName]).
 
 %%
 %% @doc remote call functions.
@@ -222,6 +225,15 @@ handle_request(save_icon, [UserId_OR_Name, Data, ContentType]) ->
     m_user:save_icon(UserId_OR_Name, Data, ContentType);
 
 handle_request(get_icon, [UserId_OR_Name]) ->
-    m_user:get_icon(UserId_OR_Name).
+    m_user:get_icon(UserId_OR_Name);
 
-
+handle_request(get_user, [UserName]) ->
+    case user_db:lookup_name(UserName) of
+	{ok, User} ->
+	    FormattedUser = {{id, User#user.id}, 
+			     {name, atom_to_list(User#user.name)},
+			     {mail, User#user.mail}},
+	    {ok, FormattedUser};
+	Other ->
+	    Other
+    end.
