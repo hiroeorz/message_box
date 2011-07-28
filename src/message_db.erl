@@ -2,6 +2,7 @@
 %% Description : database for user messages
 
 -module(message_db).
+-include_lib("eunit/include/eunit.hrl").
 -include("message_box.hrl").
 -include("message.hrl").
 -include("user.hrl").
@@ -160,7 +161,9 @@ handle_request(get_message, [User, _DBPid, MessageId])->
 	[] -> {error, not_found};
 	[[Id]] -> 
 	    case ets:lookup(Device, Id) of
-		[Message] -> {ok, Message};
+		[Message0] ->
+		    Message1 = Message0#message{user=User},
+		    {ok, Message1};
 		Other -> {error, Other}
 	    end
     end;

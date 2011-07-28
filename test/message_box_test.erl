@@ -63,7 +63,7 @@ all_test_() ->
 	fun() ->
 		{ok, User} = message_box:get_user("shin"),
 		?assertEqual(
-		   {{id, 1}, {name, "shin"}, {mail, "shin_1@mail.jp"}},
+		   [{id, 1}, {name, "shin"}, {mail, "shin_1@mail.jp"}],
 		   User)
 	end
        },

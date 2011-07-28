@@ -222,7 +222,12 @@ handle_request(is_follow, [UserId_OR_Name, Id]) ->
     m_user:is_follow(UserId_OR_Name, Id);
 
 handle_request(save_icon, [UserId_OR_Name, Data, ContentType]) ->
-    m_user:save_icon(UserId_OR_Name, Data, ContentType);
+    case Data of
+	<<>> -> 
+	    {error, empty_data};
+	_ ->
+	    m_user:save_icon(UserId_OR_Name, Data, ContentType)
+	end;
 
 handle_request(get_icon, [UserId_OR_Name]) ->
     m_user:get_icon(UserId_OR_Name);
@@ -230,9 +235,9 @@ handle_request(get_icon, [UserId_OR_Name]) ->
 handle_request(get_user, [UserName]) ->
     case user_db:lookup_name(UserName) of
 	{ok, User} ->
-	    FormattedUser = {{id, User#user.id}, 
+	    FormattedUser = [{id, User#user.id}, 
 			     {name, atom_to_list(User#user.name)},
-			     {mail, User#user.mail}},
+			     {mail, User#user.mail}],
 	    {ok, FormattedUser};
 	Other ->
 	    Other

@@ -201,8 +201,13 @@ handle_request(update, [{User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid,
     case util:authenticate(User, AuthPassword, OneTimePasswordList) of
 	{ok, authenticated} ->
 	    User0 = User#user{mail=Mail, pid=self()},
-	    Md5Password = util:get_md5_password(User0, Password),
-	    User1 = User0#user{password=Md5Password},
+	    User1 = case Password of
+			[] -> User0;
+			_ ->
+			    Md5Password = util:get_md5_password(User0, 
+								Password),
+			    User0#user{password=Md5Password}
+		    end,
 
 	    case user_db:update_user(User1) of
 		{ok, User1} ->

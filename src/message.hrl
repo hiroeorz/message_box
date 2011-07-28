@@ -7,7 +7,8 @@
 -record(message, {id,         %% int()
 		  message_id, %% int()
 		  text,       %% string()
-		  datetime}). %%      
+		  datetime,   %% tupple
+                  user = undefined}).     %% user      
 
 -record(message_index, {id,           %% int()
 			message_id}). %% int()
