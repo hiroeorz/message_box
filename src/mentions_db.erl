@@ -32,9 +32,11 @@ create_tables(UserName, DBPid)->
     create_sqlite3_tables(DBPid).
 
 restore_table(UserName, DBPid)->
+    MessageMaxSizeOnMemory = message_box_config:get(message_max_size_on_memory),
     SqlResults = sqlite3:sql_exec(DBPid,
 				  "select * from mentions
-                                     order by id desc limit 100"),
+                                     order by id desc limit :max", 
+                                  [{':max', MessageMaxSizeOnMemory}]),
     Records = parse_message_records(SqlResults),
     Device = db_name(UserName),
     restore_records(Device, Records).
@@ -126,8 +128,10 @@ handle_request(save_message_id, [User, DBPid, MessageId])->
     Id = get_max_id(DBPid) - 1,
     MessageIndex = #message_index{id=Id, message_id=MessageId},
     Device = db_name(User#user.name),
+    MessageMaxSizeOnMemory = message_box_config:get(message_max_size_on_memory),
     ets:insert(Device, MessageIndex),
     insert_message_to_sqlite3(DBPid, MessageIndex),
+    util:shurink_ets(Device, MessageMaxSizeOnMemory),
     {ok, MessageId};
 
 handle_request(get_timeline, [User, DBPid, Count])->
@@ -136,7 +140,11 @@ handle_request(get_timeline, [User, DBPid, Count])->
     MessageIds = get_timeline_ids(Device, DBPid, Count),
 
     Fun = fun(Id) ->
-		  [MessageIndex] = ets:lookup(Device, Id),
+		  MessageIndex = case ets:lookup(Device, Id) of
+                                     [Index] -> Index;
+                                     [] -> get_message_from_db(DBPid, Id)
+                                 end,
+
 		  MessageId = MessageIndex#message_index.message_id,
 		  
 		  Result = 
@@ -153,6 +161,24 @@ handle_request(get_timeline, [User, DBPid, Count])->
     lists:sort(fun(A, B) -> A#message.datetime > B#message.datetime end, 
 	       MessageList).
 
+%%
+%% @doc get message from sqlite3
+%%
+get_message_from_db(DBPid, Id) ->
+    SqlResults = sqlite3:sql_exec(DBPid, 
+                                  "select * from mentions where id = :id",
+                                  [{':id', Id}]),
+    case SqlResults of
+        [] ->
+            {error, not_found};
+        Records ->
+            [Msg] = parse_message_records(Records),
+            Msg
+    end.
+
+%%
+%% @doc collect other users message
+%%
 collect_loop(Pid, Count, Result) ->
     if length(Result) >= Count -> Result;
        true ->

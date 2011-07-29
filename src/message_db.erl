@@ -174,16 +174,23 @@ handle_request(get_message, [User, _DBPid, MessageId])->
 	    end
     end;
 
-handle_request(get_sent_timeline, [User, _DBPid, Count])->
+handle_request(get_sent_timeline, [User, DBPid, Count])->
     Device = db_name(User#user.name),
     First = ets:first(Device),
+
     case ets:first(Device) of
 	'$end_of_table' -> [];
 	First ->
 	    MessageIds = util:get_timeline_ids(Device, Count, First, [First]),
-	    lists:map(fun(Id) -> [Msg] = ets:lookup(Device, Id), Msg end, 
+	    lists:map(fun(Id) -> 
+                              case ets:lookup(Device, Id) of
+                                  [Msg] -> Msg;
+                                  [] -> get_message_from_db(DBPid, Id)
+                              end
+                      end,
 		      MessageIds)
     end;
+    
 
 handle_request(get_latest_message, [User, _DBPid])->
     Device = db_name(User#user.name),
@@ -195,8 +202,19 @@ handle_request(get_latest_message, [User, _DBPid])->
     end.
 	    
 %%
-%% @doc local functions.
+%% @doc get message from sqlite3
 %%
+get_message_from_db(DBPid, Id) ->
+    SqlResults = sqlite3:sql_exec(DBPid, 
+                                  "select * from messages where id = :id",
+                                  [{':id', Id}]),
+    case SqlResults of
+        [] ->
+            {error, not_found};
+        Records ->
+            [Msg] = parse_message_records(Records),
+            Msg
+    end.
 
 get_max_id(DBPid)->
     Result = sqlite3:sql_exec(DBPid, "select * from messages 
@@ -206,6 +224,10 @@ get_max_id(DBPid)->
 	[] -> 0;
 	[LastRecord] -> LastRecord#message.id
     end.
+
+%%
+%% @doc local functions.
+%%
 
 get_message_id(UserId, Id)->
     FormattedUserId = util:formatted_number(UserId, 9),
