@@ -11,7 +11,8 @@
 	 get_reply_list/1, is_reply_text/1,
 	 db_info/1, sleep/1, icon_path/1,
 	 get_md5_password/2, get_onetime_password/2, 
-	 authenticate/2, authenticate/3]).
+	 authenticate/2, authenticate/3,
+         shurink_ets/2]).
 
 -define(SEPARATOR, "\s\n").
 -define(MD5_KEY1, "message_box").
@@ -170,3 +171,26 @@ authenticate(User, RawPassword) ->
 icon_path(Name) when is_atom(Name) -> 
     Dir = message_box_config:get(icon_dir),
     Dir ++ atom_to_list(Name).
+
+%%
+%% @doc ets shurink function
+%%
+shurink_ets(Device, MaxCount) ->
+    case ets:first(Device) of
+        '$end_of_table' -> 
+            ok;
+        First ->
+            shurink_ets(Device, MaxCount, First, 1)
+    end.
+
+shurink_ets(Device, MaxCount, Index, Count) ->
+    case ets:next(Device, Index) of
+        '$end_of_table' -> 
+            ok;
+        Next ->
+            if Count > MaxCount -> ets:delete(Device, Next);
+               true -> ok
+            end,
+            shurink_ets(Device, MaxCount, Next, Count + 1)
+    end.
+

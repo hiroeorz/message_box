@@ -50,9 +50,11 @@ close_tables(Device)->
     ets:delete(Device).
 
 restore_table(UserName, DBPid)->
+    MessageMaxSizeOnMemory = message_box_config:get(message_max_size_on_memory),
     SqlResults = sqlite3:sql_exec(DBPid,
 				  "select * from messages
-                                     order by id desc limit 100"),
+                                     order by id desc limit :max", 
+                                  [{':max', MessageMaxSizeOnMemory}]),
     Records = parse_message_records(SqlResults),
     Device = db_name(UserName),
     restore_records(Device, Records).
@@ -145,12 +147,16 @@ loop({User, DBPid}) ->
 handle_request(save_message, [User, DBPid, Text])->
     Id = get_max_id(DBPid) - 1,
     MessageId = get_message_id(User#user.id, Id),
-    Message = #message{id = Id, message_id = MessageId, text = Text, 
+    Message = #message{id = Id, 
+                       message_id = MessageId, 
+                       text = Text, 
 		       datetime={date(), time()}},
 
     Device = db_name(User#user.name),
+    MessageMaxSizeOnMemory = message_box_config:get(message_max_size_on_memory),
     ets:insert(Device, Message),
     insert_message_to_sqlite3(DBPid, Message),
+    util:shurink_ets(Device, MessageMaxSizeOnMemory),
     {ok, MessageId};
 
 handle_request(get_message, [User, _DBPid, MessageId])->
