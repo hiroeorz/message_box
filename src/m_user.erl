@@ -22,6 +22,14 @@
 			    {".png", "image/png"}, 
 			    {".gif", "image/gif"}]).
 
+-record(user_state, {user,                     %% user record
+                     message_db_pid,           %% pid
+                     home_db_pid,              %% pid
+                     follower_db_pid,          %% pid
+                     follow_db_pid,            %% pid
+                     mentions_db_pid,          %% pid
+                     one_time_password_list}). %% list
+
 start(UserName) ->
     spawn_link(?MODULE, init, [UserName]).
 
@@ -44,8 +52,15 @@ init(UserName) ->
     file:make_dir(IconDir),
 
     user_db:save_pid(User#user.id, self()),
-    loop({User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, Follow_DB_Pid,
-	  MentionsDB_Pid, []}).
+
+    State = #user_state{user=User, 
+                        message_db_pid=MessageDB_Pid,
+                        home_db_pid=HomeDB_Pid,
+                        follower_db_pid=FollowerDB_Pid,
+                        follow_db_pid=Follow_DB_Pid,
+                        mentions_db_pid=MentionsDB_Pid,
+                        one_time_password_list=[]},
+    loop(State).
 
 stop(UserName) ->
     call(UserName, stop, []).
@@ -143,20 +158,19 @@ reference_call(UserName_OR_Id, Name, Args)  ->
 reply(To, Pid, Result) ->
     To ! {Pid, reply, Result}.
 
-loop(State = {User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, Follow_DB_Pid,
-	      MentionsDB_Pid, OneTimePasswordList}) ->
+loop(State) ->
     Pid = self(),
     receive
 	{request, From, stop, []} ->
 	    reply(From, Pid, handle_stop(State));
 
 	{request, From, set_onetime_password, [OneTimePassword]} ->
+            OneTimePasswordList = State#user_state.one_time_password_list,
 	    NewList = add_one_time_password(OneTimePasswordList, 
 					    OneTimePassword),
+            NewState = State#user_state{one_time_password_list=NewList},
 	    reply(From, Pid, ok),
-	    loop({User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, 
-		  Follow_DB_Pid, MentionsDB_Pid, 
-		  NewList});
+            loop(NewState);
 
 	{ref_request, From, Name, Args} ->
 	    spawn(fun()->
@@ -184,19 +198,17 @@ loop(State = {User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, Follow_DB_Pid,
 	    end
     end.
 
-handle_stop({_, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, FollowDB_Pid, 
-	    MentionsDB_Pid, _}) ->
-    message_db:stop(MessageDB_Pid),
-    home_db:stop(HomeDB_Pid),
-    follower_db:stop(FollowerDB_Pid),
-    follow_db:stop(FollowDB_Pid),
-    mentions_db:stop(MentionsDB_Pid),
+handle_stop(State) ->
+    message_db:stop(State#user_state.message_db_pid),
+    home_db:stop(State#user_state.home_db_pid),
+    follower_db:stop(State#user_state.follower_db_pid),
+    follow_db:stop(State#user_state.follow_db_pid),
+    mentions_db:stop(State#user_state.mentions_db_pid),
     {stop, self()}.
 
-handle_request(update, [{User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, 
-			 Follow_DB_Pid,
-			 MentionsDB_Pid, OneTimePasswordList}=State, 
-			AuthPassword, Mail, Password]) ->
+handle_request(update, [State, AuthPassword, Mail, Password]) ->
+    User = State#user_state.user,
+    OneTimePasswordList = State#user_state.one_time_password_list,
 
     case util:authenticate(User, AuthPassword, OneTimePasswordList) of
 	{ok, authenticated} ->
@@ -211,10 +223,7 @@ handle_request(update, [{User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid,
 
 	    case user_db:update_user(User1) of
 		{ok, User1} ->
-		    NewState = {User1, MessageDB_Pid, HomeDB_Pid, 
-				FollowerDB_Pid, Follow_DB_Pid,
-				MentionsDB_Pid, OneTimePasswordList},
-
+                    NewState = State#user_state{user=User1},
 		    {{ok, User}, NewState};
 		Other ->
 		    {Other, State}
@@ -222,12 +231,16 @@ handle_request(update, [{User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid,
 	Other -> {Other, State}
     end;
 
-handle_request(latest_message, [{User, _}]) ->
+handle_request(latest_message, [State]) ->
+    User = State#user_state.user,
     message_db:get_latest_message(User#user.name);
 
-handle_request(send_message, 
-	       [{User, MessageDB_Pid, HomeDB_Pid, FollowerDB_Pid, _, _, 
-		 OneTimePasswordList}=State, Password, Text]) ->
+handle_request(send_message, [State, Password, Text]) ->
+    User = State#user_state.user,
+    OneTimePasswordList = State#user_state.one_time_password_list,
+    FollowerDB_Pid = State#user_state.follower_db_pid,
+    HomeDB_Pid = State#user_state.home_db_pid,
+    MessageDB_Pid = State#user_state.message_db_pid,
 
     case util:authenticate(User, Password, OneTimePasswordList) of
 	{ok, authenticated} ->
@@ -244,18 +257,22 @@ handle_request(send_message,
 	Other -> {Other, State}
     end;
 
-handle_request(get_sent_timeline, [{_, MessageDB_Pid, _, _, _, _, _}, Count]) ->
+handle_request(get_sent_timeline, [State, Count]) ->
+    MessageDB_Pid = State#user_state.message_db_pid,
     message_db:get_sent_timeline(MessageDB_Pid, Count);
 
-handle_request(get_home_timeline, [{_, _, HomeDB_Pid, _, _, _, _}, Count]) ->
+handle_request(get_home_timeline, [State, Count]) ->
+    HomeDB_Pid = State#user_state.home_db_pid,
     home_db:get_timeline(HomeDB_Pid, Count);
 
-handle_request(get_mentions_timeline, 
-	       [{_, _, _, _, _, MentionsDB_Pid, _}, Count]) ->
+handle_request(get_mentions_timeline, [State, Count]) ->
+    MentionsDB_Pid = State#user_state.mentions_db_pid,
     mentions_db:get_timeline(MentionsDB_Pid, Count);
 
-handle_request(save_to_home, [{_, _, HomeDB_Pid, _, FollowDB_Pid, _, _}=State, 
-			      MessageId, IsReplyText]) ->
+handle_request(save_to_home, [State, MessageId, IsReplyText]) ->
+    HomeDB_Pid = State#user_state.home_db_pid,
+    FollowDB_Pid = State#user_state.follow_db_pid,
+    
     case IsReplyText of
 	{true, _To} ->
 	    io:format("IsReplyText:~p", [IsReplyText]),
@@ -270,9 +287,11 @@ handle_request(save_to_home, [{_, _, HomeDB_Pid, _, FollowDB_Pid, _, _}=State,
 	    {home_db:save_message_id(HomeDB_Pid, MessageId), State}
     end;
 
-handle_request(follow, 
-	       [{User, _, _, _, FollowDB_Pid, _, OneTimePasswordList}=State, 
-			Password, UserId]) ->
+handle_request(follow, [State, Password, UserId]) ->
+    User = State#user_state.user,
+    FollowDB_Pid = State#user_state.follow_db_pid,
+    OneTimePasswordList = State#user_state.one_time_password_list,
+
     case util:authenticate(User, Password, OneTimePasswordList) of
 	{ok, authenticated} ->
 	    case user_db:lookup_id(UserId) of
@@ -287,9 +306,11 @@ handle_request(follow,
 	Other -> {Other, State}
     end;
 
-handle_request(unfollow, 
-	       [{User, _, _, _, FollowDB_Pid, _, OneTimePasswordList}=State, 
-		Password, UserId]) ->
+handle_request(unfollow, [State, Password, UserId]) ->
+    User = State#user_state.user,
+    FollowDB_Pid = State#user_state.follow_db_pid,
+    OneTimePasswordList = State#user_state.one_time_password_list,
+
     case util:authenticate(User, Password, OneTimePasswordList) of
 	{ok, authenticated} ->
 	    case user_db:lookup_id(UserId) of
@@ -304,8 +325,9 @@ handle_request(unfollow,
 	Other -> {Other, State}
     end;
 
-handle_request(add_follower, 
-	       [{_, _, _, FollowerDB_Pid, _, _, _}=State, UserId]) ->
+handle_request(add_follower, [State, UserId]) ->
+    FollowerDB_Pid = State#user_state.follower_db_pid,
+
     case user_db:lookup_id(UserId) of
 	{ok, _User} -> 
 	    {follower_db:save_follower(FollowerDB_Pid, UserId), State};
@@ -313,8 +335,8 @@ handle_request(add_follower,
 	    {Other, State}
     end;
 
-handle_request(delete_follower, 
-	       [{_, _, _, FollowerDB_Pid, _, _, _}=State, UserId]) ->
+handle_request(delete_follower, [State, UserId]) ->
+    FollowerDB_Pid = State#user_state.follower_db_pid,
     case user_db:lookup_id(UserId) of
 	{ok, _User} -> 
 	    {follower_db:delete_follower(FollowerDB_Pid, UserId), State};
@@ -322,23 +344,27 @@ handle_request(delete_follower,
 	    {Other, State}
     end;
 
-handle_request(get_follower_ids, [{_, _, _, FollowerDB_Pid, _, _, _}]) ->
+handle_request(get_follower_ids, [State]) ->
+    FollowerDB_Pid = State#user_state.follower_db_pid,
     follower_db:get_follower_ids(FollowerDB_Pid);
 
-handle_request(get_message, [{_, MessageDB_Pid, _, _, _, _, _}, MessageId]) ->
+handle_request(get_message, [State, MessageId]) ->
+    MessageDB_Pid = State#user_state.message_db_pid,
     message_db:get_message(MessageDB_Pid, MessageId);
 
-handle_request(save_to_mentions, 
-	       [{_, _, _, _, _, MentionsDB_Pid, _}=State, MessageId]) ->
+handle_request(save_to_mentions, [State, MessageId]) ->
+    MentionsDB_Pid = State#user_state.mentions_db_pid,
     {mentions_db:save_message_id(MentionsDB_Pid, MessageId), State};
 
-handle_request(is_follow, [{_, _, _, _, FollowDB_Pid, _, _}, FollowId]) ->
+handle_request(is_follow, [State, FollowId]) ->
+    FollowDB_Pid = State#user_state.follow_db_pid,
     follow_db:is_follow(FollowDB_Pid, FollowId);
 
-handle_request(save_icon, [{User, _, _, _, _, _, _OneTimePasswordList}=State, 
-			   Data, ContentType]) ->
+handle_request(save_icon, [State, Data, ContentType]) ->
+    User = State#user_state.user,
     delete_icon(User),
     BasePath = util:icon_path(User#user.name),
+
     Path = case ContentType of
 	       "image/jpeg" -> BasePath ++ ".jpg";
 	       "image/png" -> BasePath ++ ".png";
@@ -348,7 +374,8 @@ handle_request(save_icon, [{User, _, _, _, _, _, _OneTimePasswordList}=State,
 
     {file:write_file(Path, Data), State};
 
-handle_request(get_icon, [{User, _, _, _, _, _, _}]) ->
+handle_request(get_icon, [State]) ->
+    User = State#user_state.user,
     read_icon(User).
 
 %%
