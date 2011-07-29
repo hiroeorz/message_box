@@ -164,17 +164,9 @@ loop(State) ->
 	{request, From, stop, []} ->
 	    reply(From, Pid, handle_stop(State));
 
-	{request, From, set_onetime_password, [OneTimePassword]} ->
-            OneTimePasswordList = State#user_state.one_time_password_list,
-	    NewList = add_one_time_password(OneTimePasswordList, 
-					    OneTimePassword),
-            NewState = State#user_state{one_time_password_list=NewList},
-	    reply(From, Pid, ok),
-            loop(NewState);
-
 	{ref_request, From, Name, Args} ->
 	    spawn(fun()->
-			  Result = handle_request(Name, [State | Args]),
+			  {Result, _} = handle_request(Name, [State | Args]),
 			  reply(From, Pid, Result)
 		  end),
 	    loop(State);
@@ -206,6 +198,13 @@ handle_stop(State) ->
     mentions_db:stop(State#user_state.mentions_db_pid),
     {stop, self()}.
 
+handle_request(set_onetime_password, [State, OneTimePassword]) ->
+    OneTimePasswordList = State#user_state.one_time_password_list,
+    NewList = add_one_time_password(OneTimePasswordList, 
+                                    OneTimePassword),
+    NewState = State#user_state{one_time_password_list=NewList},
+    {ok, NewState};
+
 handle_request(update, [State, AuthPassword, Mail, Password]) ->
     User = State#user_state.user,
     OneTimePasswordList = State#user_state.one_time_password_list,
@@ -233,7 +232,8 @@ handle_request(update, [State, AuthPassword, Mail, Password]) ->
 
 handle_request(latest_message, [State]) ->
     User = State#user_state.user,
-    message_db:get_latest_message(User#user.name);
+    Result = message_db:get_latest_message(User#user.name),
+    {Result, State};
 
 handle_request(send_message, [State, Password, Text]) ->
     User = State#user_state.user,
@@ -259,15 +259,18 @@ handle_request(send_message, [State, Password, Text]) ->
 
 handle_request(get_sent_timeline, [State, Count]) ->
     MessageDB_Pid = State#user_state.message_db_pid,
-    message_db:get_sent_timeline(MessageDB_Pid, Count);
+    Result = message_db:get_sent_timeline(MessageDB_Pid, Count),
+    {Result, State};
 
 handle_request(get_home_timeline, [State, Count]) ->
     HomeDB_Pid = State#user_state.home_db_pid,
-    home_db:get_timeline(HomeDB_Pid, Count);
+    Result = home_db:get_timeline(HomeDB_Pid, Count),
+    {Result, State};
 
 handle_request(get_mentions_timeline, [State, Count]) ->
     MentionsDB_Pid = State#user_state.mentions_db_pid,
-    mentions_db:get_timeline(MentionsDB_Pid, Count);
+    Result = mentions_db:get_timeline(MentionsDB_Pid, Count),
+    {Result, State};
 
 handle_request(save_to_home, [State, MessageId, IsReplyText]) ->
     HomeDB_Pid = State#user_state.home_db_pid,
@@ -346,19 +349,23 @@ handle_request(delete_follower, [State, UserId]) ->
 
 handle_request(get_follower_ids, [State]) ->
     FollowerDB_Pid = State#user_state.follower_db_pid,
-    follower_db:get_follower_ids(FollowerDB_Pid);
+    Result = follower_db:get_follower_ids(FollowerDB_Pid),
+    {Result, State};
 
 handle_request(get_message, [State, MessageId]) ->
     MessageDB_Pid = State#user_state.message_db_pid,
-    message_db:get_message(MessageDB_Pid, MessageId);
+    Result = message_db:get_message(MessageDB_Pid, MessageId),
+    {Result, State};
 
 handle_request(save_to_mentions, [State, MessageId]) ->
     MentionsDB_Pid = State#user_state.mentions_db_pid,
-    {mentions_db:save_message_id(MentionsDB_Pid, MessageId), State};
+    Result = mentions_db:save_message_id(MentionsDB_Pid, MessageId),
+    {Result, State};    
 
 handle_request(is_follow, [State, FollowId]) ->
     FollowDB_Pid = State#user_state.follow_db_pid,
-    follow_db:is_follow(FollowDB_Pid, FollowId);
+    Result = follow_db:is_follow(FollowDB_Pid, FollowId),
+    {Result, State};
 
 handle_request(save_icon, [State, Data, ContentType]) ->
     User = State#user_state.user,
@@ -376,7 +383,7 @@ handle_request(save_icon, [State, Data, ContentType]) ->
 
 handle_request(get_icon, [State]) ->
     User = State#user_state.user,
-    read_icon(User).
+    {read_icon(User), State}.
 
 %%
 %% @doc search content-type from file extention.
