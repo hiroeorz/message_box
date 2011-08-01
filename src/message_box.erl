@@ -81,7 +81,6 @@ send_message(Id, Password, Message) ->
 %%
 %% @doc follow other user
 %%
-%%
 follow(UserId1, Password, UserId2) ->
     spawn_call(follow, [UserId1, Password, UserId2]).
 

@@ -31,7 +31,7 @@ init(FileName)->
     loop(ok).
 
 create_tables(FileName) ->
-    ets:new(userRam, [named_table, {keypos, #user.id}]),
+    ets:new(userRam, [named_table, ordered_set, {keypos, #user.id}]),
     dets:open_file(userDisk, [{file, FileName}, {keypos, #user.id}]).
 
 close_tables()->
