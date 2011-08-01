@@ -51,8 +51,8 @@ all_test_() ->
 
        {"ユーザを更新",
 	fun() ->
-		{ok, OneTimePassword} = message_box:authenticate("shin", 
-								 "password"),
+		{ok, OneTimePassword, _User} = message_box:authenticate("shin", 
+                                                                   "password"),
 		?assertMatch({ok, _},
 			     message_box:update_user(shin, OneTimePassword, 
 						     "shin_1@mail.jp", "aaa"))
@@ -71,8 +71,8 @@ all_test_() ->
        { "ユーザ認証に成功してワンタイムパスワードを入手する",
 	 fun() ->
 		 message_box_test:wait(),
-		 {ok, OneTimePassword} = message_box:authenticate("shin", 
-								  "aaa"),
+		 {ok, OneTimePassword, _User} = 
+                     message_box:authenticate("shin", "aaa"),
 		 ?assertEqual(true, is_binary(OneTimePassword))
 	 end
        },
@@ -99,8 +99,8 @@ all_test_() ->
 		 message_box_test:wait(),
 		 ShinId = message_box_test:get_id(shin),
 		 Message1 = "hello world",
-		 {ok, OneTimePassword} = message_box:authenticate("shin", 
-								  "aaa"),
+		 {ok, OneTimePassword, _User} = 
+                     message_box:authenticate("shin", "aaa"),
 
 		 {ok, SavedMessageId_0} = 
 		     message_box:send_message(ShinId, OneTimePassword, 

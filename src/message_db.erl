@@ -184,8 +184,11 @@ handle_request(get_sent_timeline, [User, DBPid, Count])->
 	    MessageIds = util:get_timeline_ids(Device, Count, First, [First]),
 	    lists:map(fun(Id) -> 
                               case ets:lookup(Device, Id) of
-                                  [Msg] -> Msg;
-                                  [] -> get_message_from_db(DBPid, Id)
+                                  [Msg] -> 
+                                      Msg#message{user=User};
+                                  [] -> 
+                                      Msg = get_message_from_db(DBPid, Id),
+                                      Msg#message{user=User}
                               end
                       end,
 		      MessageIds)

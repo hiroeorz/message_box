@@ -78,6 +78,10 @@ update_user(UserName, AuthPassword, Mail, Password) when is_atom(UserName) ->
 send_message(Id, Password, Message) ->
     spawn_call(send_message, [Id, Password, Message]).
 
+%%
+%% @doc follow other user
+%%
+%%
 follow(UserId1, Password, UserId2) ->
     spawn_call(follow, [UserId1, Password, UserId2]).
 
@@ -172,7 +176,7 @@ handle_request(authenticate, [UserName, Password]) ->
 		    OneTimePassword = util:get_onetime_password(User, 
 								Password),
 		    m_user:set_onetime_password(User#user.id, OneTimePassword),
-		    {ok, OneTimePassword};
+		    {ok, OneTimePassword, User};
 		Other -> Other
 	    end;
 
