@@ -162,8 +162,8 @@ handle_request(get_follow_ids, [User]) ->
 handle_request(is_follow, [User, FollowId]) ->
     Device = db_name(User#user.name),
     case ets:lookup(Device, FollowId) of
-	[_FollowingUser] -> true;
-	[] -> false
+        [_FollowingUser] -> true;
+        [] -> false
     end.
 	    
 %%

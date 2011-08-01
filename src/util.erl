@@ -85,7 +85,13 @@ is_reply_text(Text) ->
 	    [ToToken | _Tail] = string:tokens(Text, ?SEPARATOR),
 	    case string:sub_string(ToToken, 2, length(ToToken)) of
 		"" -> {false, nil};
-		To -> {true, list_to_atom(To)}
+		To ->
+                    case user_db:lookup_name(list_to_atom(To)) of
+                        {ok, User} ->
+                            {true, User};
+                        _->
+                            {false, nil}
+                    end
 	    end;
 	_Other ->
 	    {false, nil}

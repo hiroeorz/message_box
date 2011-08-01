@@ -275,20 +275,25 @@ handle_request(get_mentions_timeline, [State, Count]) ->
 handle_request(save_to_home, [State, MessageId, IsReplyText]) ->
     HomeDB_Pid = State#user_state.home_db_pid,
     FollowDB_Pid = State#user_state.follow_db_pid,
-    
+    User = State#user_state.user,
+
     case IsReplyText of
-	{true, _To} ->
+	{true, To} ->
 	    io:format("IsReplyText:~p", [IsReplyText]),
 	    FromUserId = util:get_user_id_from_message_id(MessageId),
-	    case follow_db:is_follow(FollowDB_Pid, FromUserId) of
+
+            case check_reply_receiver(FollowDB_Pid, 
+                                      FromUserId, To#user.id, User) of
 		true  -> 
-		    {home_db:save_message_id(HomeDB_Pid, MessageId), State};
-		false -> 
-		    {ok, State}
-	    end;
+                    Result = home_db:save_message_id(HomeDB_Pid, MessageId), 
+                    {Result, State};
+                false ->
+                    {ok, State}
+            end;               
+
 	{false, nil} ->
 	    {home_db:save_message_id(HomeDB_Pid, MessageId), State}
-    end;
+    end;                    
 
 handle_request(follow, [State, Password, UserId]) ->
     User = State#user_state.user,
@@ -480,3 +485,26 @@ add_one_time_password(List, OneTimePassword) ->
 	    NewList
     end.
 
+%%
+%% @doc check reply receiver display home.
+%%
+check_reply_receiver(FollowDB_Pid, SenderId, ReceiverId, User) ->
+    case follow_db:is_follow(FollowDB_Pid, SenderId) of
+        true ->
+            io:format("following sender"),
+            case follow_db:is_follow(FollowDB_Pid, ReceiverId) of
+                true ->
+                    io:format("following receiver ok."),
+                    true;
+                _ ->
+                    if User#user.id == ReceiverId ->
+                            io:format("reply to me."),
+                            true;
+                       true ->
+                            io:format("reply to nooooot me."),
+                            false
+                    end
+            end;
+        _  ->
+            false
+    end.
