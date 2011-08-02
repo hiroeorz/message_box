@@ -489,20 +489,16 @@ add_one_time_password(List, OneTimePassword) ->
 %% @doc check reply receiver display home.
 %%
 check_reply_receiver(FollowDB_Pid, SenderId, ReceiverId, User) ->
+    ThisUserId = User#user.id,
+
     case follow_db:is_follow(FollowDB_Pid, SenderId) of
         true ->
-            io:format("following sender"),
             case follow_db:is_follow(FollowDB_Pid, ReceiverId) of
-                true ->
-                    io:format("following receiver ok."),
-                    true;
+                true -> true;
                 _ ->
-                    if User#user.id == ReceiverId ->
-                            io:format("reply to me."),
-                            true;
-                       true ->
-                            io:format("reply to nooooot me."),
-                            false
+                    case ReceiverId  of
+                        ThisUserId -> true;
+                        _ -> false
                     end
             end;
         _  ->
