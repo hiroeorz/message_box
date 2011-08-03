@@ -1,5 +1,8 @@
-%% File : message_box.erl
-%% Description : system management module.
+%%
+%% @author HIROE Shin <twitter: http://twitter.com/#!/hiroe_orz17>
+%% @doc MessageBox is Twitter clone using Erlang (for plactice).
+%% @copyright 2011 HIROE Shin
+%%
 
 -module(message_box).
 -include_lib("eunit/include/eunit.hrl").
@@ -15,7 +18,7 @@
 
 %%
 %% @doc stating system.
-%% @spec start() -> pid
+%% @spec start() -> pid()
 %%
 start() ->
     message_box_config:load(),
