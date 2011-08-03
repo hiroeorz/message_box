@@ -57,7 +57,7 @@ save_get_ids_test_() ->
 		 {ok, MikeUser} = user_db:lookup_name(mike),
 		 TomId = TomUser#user.id,
 		 MikeId = MikeUser#user.id,
-		 ?assertEqual({ok, deleted}, 
+		 ?assertEqual(ok, 
 			      follower_db:delete_follower(Pid, TomId)),
 		 ?assertEqual([MikeId], follower_db:get_follower_ids(Pid))
 	 end

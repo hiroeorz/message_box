@@ -194,10 +194,6 @@ collect_loop(Pid, Count, Result) ->
     end.
 
 %%
-%% @doc local functions.
-%%
-
-%%
 %% @doc get message id list from local ets and sqlite3 database.
 %%
 get_timeline_ids(Device, DBPid, Count) ->

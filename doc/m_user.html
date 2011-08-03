@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Module m_user</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module m_user</h1>
+<ul class="index"><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>
+
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_follower-2">add_follower/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#delete_follower-2">delete_follower/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#follow-3">follow/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_follower_ids-1">get_follower_ids/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_home_timeline-2">get_home_timeline/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_icon-1">get_icon/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_mentions_timeline-2">get_mentions_timeline/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_message-2">get_message/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_sent_timeline-2">get_sent_timeline/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_follow-2">is_follow/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#save_icon-3">save_icon/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#save_to_home-2">save_to_home/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#save_to_home-3">save_to_home/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#save_to_mentions-2">save_to_mentions/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#send_message-3">send_message/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#set_onetime_password-2">set_onetime_password/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#start-1">start/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#unfollow-3">unfollow/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#update-4">update/4</a></td><td>export functions.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="add_follower-2">add_follower/2</a></h3>
+<div class="spec">
+<p><tt>add_follower(UserName_OR_Id, UserId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="delete_follower-2">delete_follower/2</a></h3>
+<div class="spec">
+<p><tt>delete_follower(UserName_OR_Id, UserId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="follow-3">follow/3</a></h3>
+<div class="spec">
+<p><tt>follow(UserName_OR_Id, Password, UserId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="get_follower_ids-1">get_follower_ids/1</a></h3>
+<div class="spec">
+<p><tt>get_follower_ids(UserName_OR_Id) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="get_home_timeline-2">get_home_timeline/2</a></h3>
+<div class="spec">
+<p><tt>get_home_timeline(UserName_OR_Id, Count) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="get_icon-1">get_icon/1</a></h3>
+<div class="spec">
+<p><tt>get_icon(UserName_OR_Id) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="get_mentions_timeline-2">get_mentions_timeline/2</a></h3>
+<div class="spec">
+<p><tt>get_mentions_timeline(UserName_OR_Id, Count) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="get_message-2">get_message/2</a></h3>
+<div class="spec">
+<p><tt>get_message(UserName_OR_Id, MessageId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="get_sent_timeline-2">get_sent_timeline/2</a></h3>
+<div class="spec">
+<p><tt>get_sent_timeline(UserName_OR_Id, Count) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="init-1">init/1</a></h3>
+<div class="spec">
+<p><tt>init(UserName) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="is_follow-2">is_follow/2</a></h3>
+<div class="spec">
+<p><tt>is_follow(UserName_OR_Id, UserId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="save_icon-3">save_icon/3</a></h3>
+<div class="spec">
+<p><tt>save_icon(UserName_OR_Id, Data, ContentType) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="save_to_home-2">save_to_home/2</a></h3>
+<div class="spec">
+<p><tt>save_to_home(UserName_OR_Id, MessageId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="save_to_home-3">save_to_home/3</a></h3>
+<div class="spec">
+<p><tt>save_to_home(UserName_OR_Id, MessageId, IsReplyText) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="save_to_mentions-2">save_to_mentions/2</a></h3>
+<div class="spec">
+<p><tt>save_to_mentions(UserName_OR_Id, MessageId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="send_message-3">send_message/3</a></h3>
+<div class="spec">
+<p><tt>send_message(UserName_OR_Id, Password, Text) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="set_onetime_password-2">set_onetime_password/2</a></h3>
+<div class="spec">
+<p><tt>set_onetime_password(UserName_OR_Id, OneTimePassword) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="start-1">start/1</a></h3>
+<div class="spec">
+<p><tt>start(UserName) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="stop-1">stop/1</a></h3>
+<div class="spec">
+<p><tt>stop(UserName) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="unfollow-3">unfollow/3</a></h3>
+<div class="spec">
+<p><tt>unfollow(UserName_OR_Id, Password, UserId) -&gt; any()</tt></p>
+</div>
+
+<h3 class="function"><a name="update-4">update/4</a></h3>
+<div class="spec">
+<p><tt>update(UserName_OR_Id, AuthPassword, Mail, Password) -&gt; any()</tt></p>
+</div><p>export functions
+ </p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc, Aug 4 2011, 00:37:05.</i></p>
+</body>
+</html>

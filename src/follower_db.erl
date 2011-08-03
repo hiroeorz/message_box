@@ -132,7 +132,7 @@ handle_request(delete_follower, [User, Id]) ->
 	    {DiscName, _} = dets_info(Device),
 	    ets:delete(Device, Id),
 	    dets:delete(DiscName, Id),
-	    {ok, deleted};
+	    ok;
 	false -> {error, not_following}
     end;
 
