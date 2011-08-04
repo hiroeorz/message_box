@@ -15,7 +15,7 @@ main([]) ->
 			  {app_default,"http://www.erlang.org/doc/man"},
 			  {top_level_readme,
 			   {"./doc/README.md",
-			    "http://github.com/esl/edown"}}]),
+			    "http://github.com/hiroeorz/message_box"}}]),
     case R of
 	ok ->
 	    halt();
