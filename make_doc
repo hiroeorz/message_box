@@ -14,7 +14,7 @@ main([]) ->
 			  {src_path, ["src"]},
 			  {app_default,"http://www.erlang.org/doc/man"},
 			  {top_level_readme,
-			   {"./README.md",
+			   {"./doc/README.md",
 			    "http://github.com/esl/edown"}}]),
     case R of
 	ok ->
