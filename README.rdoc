@@ -33,8 +33,9 @@ MessageBox is Twitter clone using Erlang (for plactice).
  %% getting home timeline(max message count 40)
  > message_box:get_home_timeline(UserId, 40).
 
-See test/message_box_test.erl for other details.
+See documentation[http://github.com/hiroeorz/message_box/blob/master/doc/message_box.md] for more details.
 
+And other modules documenttion here[http://github.com/hiroeorz/message_box/blob/master/doc/README.md].
 
 == Contributing to message_box
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
