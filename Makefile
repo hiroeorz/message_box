@@ -8,6 +8,7 @@ DBDIR=./db
 APP_NAME=message_box
 HOST_NAME=127.0.0.1
 REBAR=./rebar
+EDOWN=./make_doc
 
 all: clean compile xref
 
@@ -27,6 +28,9 @@ check:
 
 edoc:
 	@$(REBAR) doc
+
+edown:
+	@$(EDOWN)
 
 cleardata:
 	@ rm -rf $(DBDIR)
