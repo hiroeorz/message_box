@@ -29,8 +29,8 @@
 <tr><td valign="top"><a href="#init-0">init/0</a></td><td>system initializer.</td></tr>
 <tr><td valign="top"><a href="#is_follow-2">is_follow/2</a></td><td>check following other user.</td></tr>
 <tr><td valign="top"><a href="#save_icon-3">save_icon/3</a></td><td>save icon to disc.</td></tr>
-<tr><td valign="top"><a href="#send_message-3">send_message/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#start-0">start/0</a></td><td>stating system.</td></tr>
+<tr><td valign="top"><a href="#send_message-3">send_message/3</a></td><td>send message to timeline.</td></tr>
+<tr><td valign="top"><a href="#start-0">start/0</a></td><td>stating system using default setting file(conf/message_box.conf).</td></tr>
 <tr><td valign="top"><a href="#start-1">start/1</a></td><td>stating system.</td></tr>
 <tr><td valign="top"><a href="#stop-0">stop/0</a></td><td>all system shuting down.</td></tr>
 <tr><td valign="top"><a href="#unfollow-3">unfollow/3</a></td><td>unfollow other user.</td></tr>
@@ -41,48 +41,56 @@
 
 <h3 class="function"><a name="authenticate-2">authenticate/2</a></h3>
 <div class="spec">
-<p><tt>authenticate(UserName::string() | atom(), Password::string()) -&gt; {ok, #user{}} | {error, unauthenticated}</tt></p>
-</div><p>user authentication.</p>
+<p><tt>authenticate(UserName::string() | atom(), Password::string()) -&gt; {ok, #user{}} | {error, unauthenticated}</tt><br></p>
+</div><p>user authentication.
+ </p>
 
 <h3 class="function"><a name="create_user-3">create_user/3</a></h3>
 <div class="spec">
-<p><tt>create_user(UserName::string() | atom(), Mail::string(), Password::string()) -&gt; {ok, #user{}} | {error, already_exist}</tt></p>
-</div><p>create new user.</p>
+<p><tt>create_user(UserName::string() | atom(), Mail::string(), Password::string()) -&gt; {ok, #user{}} | {error, already_exist}</tt><br></p>
+</div><p>create new user.
+ </p>
 
 <h3 class="function"><a name="follow-3">follow/3</a></h3>
 <div class="spec">
-<p><tt>follow(UserId1::<a href="#type-int">int()</a>, Password::string(), UserId2::<a href="#type-int">int()</a>) -&gt; ok | {error, already_following}</tt></p>
+<p><tt>follow(UserId1::integer(), Password::string(), UserId2::integer()) -&gt; ok | {error, already_following}</tt><br></p>
 </div><p>follow other user.</p>
 
 <h3 class="function"><a name="get_home_timeline-2">get_home_timeline/2</a></h3>
 <div class="spec">
-<p><tt>get_home_timeline(UserId_OR_Name::<a href="#type-int">int()</a> | string(), Count::<a href="#type-int">int()</a>) -&gt; list(message) | {error, not_found}</tt></p>
-</div><p>get home timeline list. sorted by recentry time.</p>
+<p><tt>get_home_timeline(UserId_OR_Name::integer() | string(), Count::integer()) -&gt; [message] | {error, not_found}</tt><br></p>
+</div><p>get home timeline list. sorted by recentry time.
+ </p>
 
 <h3 class="function"><a name="get_icon-1">get_icon/1</a></h3>
 <div class="spec">
-<p><tt>get_icon(UserId_OR_Name::<a href="#type-int">int()</a> | string()) -&gt; {ok, binary(), string()} | {error, not_found} | {error, not_exist}</tt></p>
-</div><p>get icon data.</p>
+<p><tt>get_icon(UserId_OR_Name::integer() | string()) -&gt; {ok, binary(), string()} | {error, not_found} | {error, not_exist}</tt><br></p>
+</div><p>get icon data.
+ </p>
 
 <h3 class="function"><a name="get_mentions_timeline-2">get_mentions_timeline/2</a></h3>
 <div class="spec">
-<p><tt>get_mentions_timeline(UserId_OR_Name::<a href="#type-int">int()</a> | string(), Count::<a href="#type-int">int()</a>) -&gt; list(message) | {error, not_found}</tt></p>
-</div><p>get mentions timeline list. sorted by recentry time.</p>
+<p><tt>get_mentions_timeline(UserId_OR_Name::integer() | string(), Count::integer()) -&gt; [message] | {error, not_found}</tt><br></p>
+</div><p>get mentions timeline list. sorted by recentry time.
+ </p>
 
 <h3 class="function"><a name="get_message-1">get_message/1</a></h3>
 <div class="spec">
-<p><tt>get_message(MessageId::<a href="#type-int">int()</a>) -&gt; {ok, #message{}} | {error, not_found}</tt></p>
-</div><p>get message record.</p>
+<p><tt>get_message(MessageId::integer()) -&gt; {ok, #message{}} | {error, not_found}</tt><br></p>
+</div><p>get message record.
+ </p>
 
 <h3 class="function"><a name="get_sent_timeline-2">get_sent_timeline/2</a></h3>
 <div class="spec">
-<p><tt>get_sent_timeline(UserId_OR_Name::<a href="#type-int">int()</a> | string(), Count::<a href="#type-int">int()</a>) -&gt; list(message) | {error, not_found}</tt></p>
-</div><p>get sent timeline list. sorted by recentry time.</p>
+<p><tt>get_sent_timeline(UserId_OR_Name::integer() | string(), Count::integer()) -&gt; [message] | {error, not_found}</tt><br></p>
+</div><p>get sent timeline list. sorted by recentry time.
+ </p>
 
 <h3 class="function"><a name="get_user-1">get_user/1</a></h3>
 <div class="spec">
-<p><tt>get_user(UserName::string()) -&gt; {ok, list(<a href="#type-tupple">tupple()</a>)} | {error, not_found}</tt></p>
-</div><p> return {ok,[{id,4},{name,"hoge"},{mail,"hoge@mail.com"}]}</p>
+<p><tt>get_user(UserName::string()) -&gt; {ok, [tuple()]} | {error, not_found}</tt><br></p>
+</div><p> return {ok,[{id,4},{name,"hoge"},{mail,"hoge@mail.com"}]}
+ </p>
 
 <h3 class="function"><a name="init-0">init/0</a></h3>
 <div class="spec">
@@ -92,28 +100,33 @@
 
 <h3 class="function"><a name="is_follow-2">is_follow/2</a></h3>
 <div class="spec">
-<p><tt>is_follow(UserId_OR_Name::<a href="#type-int">int()</a> | string(), Id::<a href="#type-int">int()</a>) -&gt; true | false | {error, not_found}</tt></p>
-</div><p>check following other user.</p>
+<p><tt>is_follow(UserId_OR_Name::integer() | string(), Id::integer()) -&gt; true | false | {error, not_found}</tt><br></p>
+</div><p>check following other user.
+ </p>
 
 <h3 class="function"><a name="save_icon-3">save_icon/3</a></h3>
 <div class="spec">
-<p><tt>save_icon(UserId_OR_Name::<a href="#type-int">int()</a> | string() | atom(), Data::binary(), ContentType::string()) -&gt; ok</tt></p>
-</div><p>save icon to disc.</p>
+<p><tt>save_icon(UserId_OR_Name::integer() | string() | atom(), Data::binary(), ContentType::string()) -&gt; ok</tt><br></p>
+</div><p>save icon to disc.
+ </p>
 
 <h3 class="function"><a name="send_message-3">send_message/3</a></h3>
 <div class="spec">
-<p><tt>send_message(Id::<a href="#type-int">int()</a>, Password::string(), Message::string()) -&gt; {ok, <a href="#type-int">int()</a>} | {error, unauthenticated}</tt></p>
-</div>
+<p><tt>send_message(Id::integer(), Password::string(), Message::string()) -&gt; {ok, integer()} | {error, unauthenticated}</tt><br></p>
+</div><p>send message to timeline.
+ </p>
 
 <h3 class="function"><a name="start-0">start/0</a></h3>
 <div class="spec">
-<p><tt>start() -&gt; pid()</tt></p>
-</div><p>stating system.</p>
+<p><tt>start() -&gt; pid()</tt><br></p>
+</div><p>stating system using default setting file(conf/message_box.conf).
+ </p>
 
 <h3 class="function"><a name="start-1">start/1</a></h3>
 <div class="spec">
-<p><tt>start(ConfigFilePath::string()) -&gt; pid</tt></p>
-</div><p>stating system.</p>
+<p><tt>start(ConfigFilePath::string()) -&gt; pid</tt><br></p>
+</div><p>stating system.
+ </p>
 
 <h3 class="function"><a name="stop-0">stop/0</a></h3>
 <div class="spec">
@@ -123,16 +136,18 @@
 
 <h3 class="function"><a name="unfollow-3">unfollow/3</a></h3>
 <div class="spec">
-<p><tt>unfollow(UserId1::<a href="#type-int">int()</a>, Password::string(), UserId2::<a href="#type-int">int()</a>) -&gt; ok | {error, not_following}</tt></p>
-</div><p>unfollow other user.</p>
+<p><tt>unfollow(UserId1::integer(), Password::string(), UserId2::integer()) -&gt; ok | {error, not_following}</tt><br></p>
+</div><p>unfollow other user.
+ </p>
 
 <h3 class="function"><a name="update_user-4">update_user/4</a></h3>
 <div class="spec">
-<p><tt>update_user(UserName::string() | atom(), AuthPassword::string(), Mail::string(), Password::string()) -&gt; {ok, #user{}} | {error, user_not_exist}</tt></p>
-</div><p>update user settings.</p>
+<p><tt>update_user(UserName::string() | atom(), AuthPassword::string(), Mail::string(), Password::string()) -&gt; {ok, #user{}} | {error, user_not_exist}</tt><br></p>
+</div><p>update user settings.
+ </p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Aug 4 2011, 01:01:10.</i></p>
+<p><i>Generated by EDoc, Aug 4 2011, 13:41:16.</i></p>
 </body>
 </html>

@@ -8,6 +8,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("message_box.hrl").
 -include("user.hrl").
+-include("message.hrl").
 -export([init/0]).
 -export([start/0, start/1, stop/0]).
 -export([authenticate/2, create_user/3, update_user/4, 
@@ -17,17 +18,19 @@
 	 save_icon/3, get_icon/1, get_user/1]).
 
 %%
-%% @doc stating system.
-%% @spec start() -> pid()
+%% @doc stating system using default setting file(conf/message_box.conf).
 %%
+-spec(start() -> pid()).
+
 start() ->
     message_box_config:load(),
     register(?MODULE, spawn(?MODULE, init, [])).
 
 %%
 %% @doc stating system.
-%% @spec start(string()) -> pid
 %%
+-spec(start(string()) -> pid).
+
 start(ConfigFilePath) ->
     Path = filename:absname(ConfigFilePath),
     message_box_config:load(Path),
@@ -69,8 +72,10 @@ start_ruby_server(Port) ->
 
 %%
 %% @doc user authentication.
-%% @spec authenticate(string()|atom(), string()) -> {ok, #user{}} | {error,unauthenticated}
 %%
+-spec(authenticate(string()|atom(), string()) -> 
+             {ok, #user{}} | {error,unauthenticated}).
+
 authenticate(UserName, Password) when is_list(UserName) ->
     authenticate(list_to_atom(UserName), Password);
 
@@ -79,15 +84,18 @@ authenticate(UserName, Password) when is_atom(UserName) ->
 
 %%
 %% @doc get message record.
-%% @spec get_message(int()) -> {ok, #message{}} | {error, not_found}
 %%
+-spec(get_message(integer()) -> {ok, #message{}} | {error, not_found}).
+
 get_message(MessageId) ->
     spawn_call(get_message, [MessageId]).
 
 %%
 %% @doc create new user.
-%% @spec create_user(string()|atom(), string(), string()) -> {ok, #user{}} | {error, already_exist}
 %%
+-spec(create_user(string()|atom(), string(), string()) -> 
+             {ok, #user{}} | {error, already_exist}).
+
 create_user(UserName, Mail, Password) when is_list(UserName) ->
     create_user(list_to_atom(UserName), Mail, Password);
 
@@ -96,8 +104,10 @@ create_user(UserName, Mail, Password) when is_atom(UserName) ->
 
 %%
 %% @doc update user settings.
-%% @spec update_user(string()|atom(), string(), string(), string()) -> {ok, #user{}} | {error, user_not_exist}
 %%
+-spec(update_user(string()|atom(), string(), string(), string()) -> 
+             {ok, #user{}} | {error, user_not_exist}).
+
 update_user(UserName, AuthPassword, Mail, Password) when is_list(UserName) ->
     update_user(list_to_atom(UserName), AuthPassword, Mail, Password);
 
@@ -105,57 +115,69 @@ update_user(UserName, AuthPassword, Mail, Password) when is_atom(UserName) ->
     spawn_call(update_user, [UserName, AuthPassword, Mail, Password]).
 
 %%
-%% @spec send_message(int(), string(), string()) -> {ok, int()} | {error,unauthenticated}
+%% @doc send message to timeline.
 %%
+-spec(send_message(integer(), string(), string()) -> 
+             {ok, integer()} | {error,unauthenticated}).
+
 send_message(Id, Password, Message) ->
     spawn_call(send_message, [Id, Password, Message]).
 
 %%
 %% @doc follow other user.
-%% @spec follow(int(), string(), int()) -> ok | {error,already_following}
+%% @spec follow(integer(), string(), integer()) -> ok | {error,already_following}
 %%
 follow(UserId1, Password, UserId2) ->
     spawn_call(follow, [UserId1, Password, UserId2]).
 
 %%
 %% @doc unfollow other user.
-%% @spec unfollow(int(), string(), int()) -> ok | {error,not_following}
 %%
+-spec(unfollow(integer(), string(), integer()) -> ok | {error,not_following}).
+
 unfollow(UserId1, Password, UserId2) ->
     spawn_call(unfollow, [UserId1, Password, UserId2]).
 
 %%
 %% @doc get home timeline list. sorted by recentry time.
-%% @spec get_home_timeline(int()|string(), int()) -> list(message) | {error,not_found}
 %%
+-spec(get_home_timeline(integer()|string(), integer()) -> 
+             list(message) | {error,not_found}).
+
 get_home_timeline(UserId_OR_Name, Count) ->
     spawn_call(get_home_timeline, [UserId_OR_Name, Count]).    
 
 %%
 %% @doc get mentions timeline list. sorted by recentry time.
-%% @spec get_mentions_timeline(int()|string(), int()) -> list(message) | {error,not_found}
 %%
+-spec(get_mentions_timeline(integer()|string(), integer()) -> 
+             list(message) | {error,not_found}).
+
 get_mentions_timeline(UserId_OR_Name, Count) ->
     spawn_call(get_mentions_timeline, [UserId_OR_Name, Count]).    
 
 %%
 %% @doc get sent timeline list. sorted by recentry time.
-%% @spec get_sent_timeline(int()|string(), int()) -> list(message) | {error,not_found}
 %%
+-spec(get_sent_timeline(integer()|string(), integer()) -> 
+             list(message) | {error,not_found}).
+
 get_sent_timeline(UserId_OR_Name, Count) ->
     spawn_call(get_sent_timeline, [UserId_OR_Name, Count]).    
 
 %%
 %% @doc check following other user.
-%% @spec is_follow(int()|string(), int()) -> true | false | {error,not_found}
 %%
+-spec(is_follow(integer()|string(), integer()) -> true | false | {error,not_found}).
+
 is_follow(UserId_OR_Name, Id) ->
     spawn_call(is_follow, [UserId_OR_Name, Id]).
 
 %%
 %% @doc save icon to disc.
-%% @spec save_icon(int()|string()|atom(), binary(), string()) -> ok
 %%
+-spec(save_icon(integer()|string()|atom(), binary(), string()) -> ok).
+
 save_icon(UserId_OR_Name, Data, ContentType) when is_list(UserId_OR_Name) ->
     save_icon(list_to_atom(UserId_OR_Name), Data, ContentType);
 
@@ -164,15 +186,18 @@ save_icon(UserId_OR_Name, Data, ContentType) when is_binary(Data) ->
 
 %%
 %% @doc get icon data.
-%% @spec get_icon(int()|string()) -> {ok, binary(), string()} | {error,not_found} | {error,not_exist}
 %%
+-spec(get_icon(integer()|string()) -> 
+             {ok, binary(), string()} | {error,not_found} | {error,not_exist}).
+
 get_icon(UserId_OR_Name) ->
     spawn_call(get_icon, [UserId_OR_Name]).
 
 %%
 %% @doc: return {ok,[{id,4},{name,"hoge"},{mail,"hoge@mail.com"}]}
-%% @spec get_user(string()) -> {ok, list(tupple())} | {error,not_found}
 %%
+-spec(get_user(string()) -> {ok, list(tuple())} | {error,not_found}).
+
 get_user(UserName) ->
     spawn_call(get_user, [UserName]).
 
