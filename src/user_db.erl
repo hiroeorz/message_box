@@ -6,20 +6,26 @@
 -include("message_box.hrl").
 -include("user.hrl").
 -export([init/1]).
--export([start/0, start/1, stop/0, loop/1,
+-export([start/0, start/1, stop/0,
 	 call/2, reply/3, 
 	 add_user/3, update_user/1, delete_user/1, 
 	 lookup_id/1, lookup_name/1, lookup_pid/1,
 	 map_do/1, save_pid/2, get_pid/1]).
 
 %%
-%% initial setup functions.
+%% @doc start user_db.
 %%
+-spec(start() -> pid()).
 
 start() ->
     message_box_config:load(),
     UserDbFilePath = message_box_config:get(user_db_file_path),
     register(?MODULE, spawn_link(?MODULE, init, [UserDbFilePath])).
+
+%%
+%% @doc start user_db.
+%%
+-spec(start(string()) -> pid()).
 
 start(FileName) ->
     register(?MODULE, spawn_link(?MODULE, init, [FileName])).
@@ -48,22 +54,43 @@ restore_table()->
 
 
 %%
-%% export functions.
+%% @doc add new user to system.
 %%
+-spec(add_user(atom(), string(), string()) -> {ok, #user{}} | {error, already_exist}).
 
 add_user(Name, Mail, Password)->
     Status = true,
     call(add_user, [Name, Status, Mail, Password]).
 
+%%
+%% @doc add new user to system.
+%%
+-spec(update_user(#user{}) -> {ok, #user{}} | {error, not_found}).
+
 update_user(#user{id=_UserID, name=_UserName, status=_Status,
 		  mail=_Mail, password=_Password} = User)->
     call(update_user, [User]).
 
+%%
+%% @doc delete user.
+%%
+-spec(delete_user(integer()) -> ok).
+
 delete_user(Id)->
     call(delete_user, [Id]).
 
+%%
+%% @doc lookup user from id.
+%%
+-spec(lookup_id(integer()) -> {ok, #user{}} | {error, not_found}).
+
 lookup_id(Id)->
     reference_call(lookup_id, [Id]).
+
+%%
+%% @doc lookup user from name(string).
+%%
+-spec(lookup_name(atom() | string()) -> {ok, #user{}} | {error, not_found}).
 
 lookup_name(Name) when is_list(Name)->
     lookup_name(list_to_atom(Name));
@@ -71,14 +98,34 @@ lookup_name(Name) when is_list(Name)->
 lookup_name(Name) when is_atom(Name) ->
     reference_call(lookup_name, [Name]).
 
+%%
+%% @doc lookup user from pid.
+%%
+-spec(lookup_pid(pid()) -> {ok, #user{}} | {error, not_found}).
+
 lookup_pid(Pid) ->
     reference_call(lookup_pid, [Pid]).
+
+%%
+%% @doc exec fun to each element of user list.
+%%
+-spec(map_do(fun()) -> any()).
 
 map_do(Fun) ->
     call(map_do, [Fun]).
 
+%%
+%% @doc lookup user from pid.
+%%
+-spec(save_pid(integer(), pid()) -> ok | {error, not_found}).
+
 save_pid(Id, Pid) ->
     call(save_pid, [Id, Pid]).
+
+%%
+%% @doc lookup user from pid.
+%%
+-spec(get_pid(integer() | atom()) -> {ok, #user{}} | {error, not_found}).
 
 get_pid(UserName_OR_Id)  ->
     reference_call(get_pid, [UserName_OR_Id]).

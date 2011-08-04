@@ -1,4 +1,4 @@
-{application,message_box}.
+{application,edown}.
 {packages,[]}.
 {modules,[follow_db,follower_db,home_db,m_user,mentions_db,message_box,
           message_box_app,message_box_config,message_box_rpc,message_box_sup,

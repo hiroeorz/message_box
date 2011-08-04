@@ -13,30 +13,30 @@
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_user-3">add_user/3</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_user-3">add_user/3</a></td><td>add new user to system.</td></tr>
 <tr><td valign="top"><a href="#call-2">call/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#delete_user-1">delete_user/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#get_pid-1">get_pid/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#delete_user-1">delete_user/1</a></td><td>delete user.</td></tr>
+<tr><td valign="top"><a href="#get_pid-1">get_pid/1</a></td><td>lookup user from pid.</td></tr>
 <tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#lookup_id-1">lookup_id/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#lookup_name-1">lookup_name/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#lookup_pid-1">lookup_pid/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#loop-1">loop/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#map_do-1">map_do/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#lookup_id-1">lookup_id/1</a></td><td>lookup user from id.</td></tr>
+<tr><td valign="top"><a href="#lookup_name-1">lookup_name/1</a></td><td>lookup user from name(string).</td></tr>
+<tr><td valign="top"><a href="#lookup_pid-1">lookup_pid/1</a></td><td>lookup user from pid.</td></tr>
+<tr><td valign="top"><a href="#map_do-1">map_do/1</a></td><td>exec fun to each element of user list.</td></tr>
 <tr><td valign="top"><a href="#reply-3">reply/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#save_pid-2">save_pid/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#start-0">start/0</a></td><td></td></tr>
-<tr><td valign="top"><a href="#start-1">start/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#save_pid-2">save_pid/2</a></td><td>lookup user from pid.</td></tr>
+<tr><td valign="top"><a href="#start-0">start/0</a></td><td>start user_db.</td></tr>
+<tr><td valign="top"><a href="#start-1">start/1</a></td><td>start user_db.</td></tr>
 <tr><td valign="top"><a href="#stop-0">stop/0</a></td><td></td></tr>
-<tr><td valign="top"><a href="#update_user-1">update_user/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#update_user-1">update_user/1</a></td><td>add new user to system.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
 
 <h3 class="function"><a name="add_user-3">add_user/3</a></h3>
 <div class="spec">
-<p><tt>add_user(Name, Mail, Password) -&gt; any()</tt></p>
-</div>
+<p><tt>add_user(Name::atom(), Mail::string(), Password::string()) -&gt; {ok, #user{}} | {error, already_exist}</tt><br></p>
+</div><p>add new user to system.
+ </p>
 
 <h3 class="function"><a name="call-2">call/2</a></h3>
 <div class="spec">
@@ -45,13 +45,15 @@
 
 <h3 class="function"><a name="delete_user-1">delete_user/1</a></h3>
 <div class="spec">
-<p><tt>delete_user(Id) -&gt; any()</tt></p>
-</div>
+<p><tt>delete_user(Id::integer()) -&gt; ok</tt><br></p>
+</div><p>delete user.
+ </p>
 
 <h3 class="function"><a name="get_pid-1">get_pid/1</a></h3>
 <div class="spec">
-<p><tt>get_pid(UserName_OR_Id) -&gt; any()</tt></p>
-</div>
+<p><tt>get_pid(UserName_OR_Id::integer() | atom()) -&gt; {ok, #user{}} | {error, not_found}</tt><br></p>
+</div><p>lookup user from pid.
+ </p>
 
 <h3 class="function"><a name="init-1">init/1</a></h3>
 <div class="spec">
@@ -60,28 +62,27 @@
 
 <h3 class="function"><a name="lookup_id-1">lookup_id/1</a></h3>
 <div class="spec">
-<p><tt>lookup_id(Id) -&gt; any()</tt></p>
-</div>
+<p><tt>lookup_id(Id::integer()) -&gt; {ok, #user{}} | {error, not_found}</tt><br></p>
+</div><p>lookup user from id.
+ </p>
 
 <h3 class="function"><a name="lookup_name-1">lookup_name/1</a></h3>
 <div class="spec">
-<p><tt>lookup_name(Name) -&gt; any()</tt></p>
-</div>
+<p><tt>lookup_name(Name::atom() | string()) -&gt; {ok, #user{}} | {error, not_found}</tt><br></p>
+</div><p>lookup user from name(string).
+ </p>
 
 <h3 class="function"><a name="lookup_pid-1">lookup_pid/1</a></h3>
 <div class="spec">
-<p><tt>lookup_pid(Pid) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="loop-1">loop/1</a></h3>
-<div class="spec">
-<p><tt>loop(State) -&gt; any()</tt></p>
-</div>
+<p><tt>lookup_pid(Pid::pid()) -&gt; {ok, #user{}} | {error, not_found}</tt><br></p>
+</div><p>lookup user from pid.
+ </p>
 
 <h3 class="function"><a name="map_do-1">map_do/1</a></h3>
 <div class="spec">
-<p><tt>map_do(Fun) -&gt; any()</tt></p>
-</div>
+<p><tt>map_do(Fun::function()) -&gt; any()</tt><br></p>
+</div><p>exec fun to each element of user list.
+ </p>
 
 <h3 class="function"><a name="reply-3">reply/3</a></h3>
 <div class="spec">
@@ -90,18 +91,21 @@
 
 <h3 class="function"><a name="save_pid-2">save_pid/2</a></h3>
 <div class="spec">
-<p><tt>save_pid(Id, Pid) -&gt; any()</tt></p>
-</div>
+<p><tt>save_pid(Id::integer(), Pid::pid()) -&gt; ok | {error, not_found}</tt><br></p>
+</div><p>lookup user from pid.
+ </p>
 
 <h3 class="function"><a name="start-0">start/0</a></h3>
 <div class="spec">
-<p><tt>start() -&gt; any()</tt></p>
-</div>
+<p><tt>start() -&gt; pid()</tt><br></p>
+</div><p>start user_db.
+ </p>
 
 <h3 class="function"><a name="start-1">start/1</a></h3>
 <div class="spec">
-<p><tt>start(FileName) -&gt; any()</tt></p>
-</div>
+<p><tt>start(FileName::string()) -&gt; pid()</tt><br></p>
+</div><p>start user_db.
+ </p>
 
 <h3 class="function"><a name="stop-0">stop/0</a></h3>
 <div class="spec">
@@ -110,11 +114,12 @@
 
 <h3 class="function"><a name="update_user-1">update_user/1</a></h3>
 <div class="spec">
-<p><tt>update_user(User) -&gt; any()</tt></p>
-</div>
+<p><tt>update_user(User::#user{}) -&gt; {ok, #user{}} | {error, not_found}</tt><br></p>
+</div><p>add new user to system.
+ </p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Aug 4 2011, 13:41:16.</i></p>
+<p><i>Generated by EDoc, Aug 5 2011, 00:46:38.</i></p>
 </body>
 </html>

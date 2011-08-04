@@ -125,8 +125,9 @@ send_message(Id, Password, Message) ->
 
 %%
 %% @doc follow other user.
-%% @spec follow(integer(), string(), integer()) -> ok | {error,already_following}
 %%
+-spec(follow(integer(), string(), integer()) -> ok | {error,already_following}).
+
 follow(UserId1, Password, UserId2) ->
     spawn_call(follow, [UserId1, Password, UserId2]).
 
