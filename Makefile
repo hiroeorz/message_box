@@ -29,9 +29,6 @@ check:
 edoc:
 	@$(REBAR) doc
 
-edown:
-	@$(EDOWN)
-
 cleardata:
 	@ rm -rf $(DBDIR)
 
