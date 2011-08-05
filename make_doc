@@ -7,7 +7,6 @@
 %% to do this with 'rebar doc'.
 %%
 main([]) ->
-    code:add_patha("ebin"),
     code:add_patha("deps/edown/ebin"),
     R = edoc:application(edown, ".",
 			 [{doclet, edown_doclet},
