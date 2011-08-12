@@ -6,7 +6,7 @@
 
 -record(message, {id,         %% int()
 		  message_id, %% int()
-		  text,       %% string()
+		  text,       %% binary()
 		  datetime,   %% tupple
                   user = undefined}).     %% user      
 

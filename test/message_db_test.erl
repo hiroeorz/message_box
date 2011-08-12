@@ -26,13 +26,13 @@ save_get_test_() ->
      {setup, ?Setup, ?Clearnup,
       [
        fun() -> 
-	       Text = "hello world",
+	       TextBin = <<"hello world">>,
 	       Pid = whereis(messge_db_server),
-	       {ok, SaveMessageId} = message_db:save_message(Pid, Text),
+	       {ok, SaveMessageId} = message_db:save_message(Pid, TextBin),
 	       {ok, Message} = message_db:get_message(Pid, SaveMessageId),
 	       ?assertEqual(-1, Message#message.id),
 	       ?assertEqual(SaveMessageId, Message#message.message_id),
-	       ?assertEqual(Text, Message#message.text),
+	       ?assertEqual(TextBin, Message#message.text),
 	       ?assertMatch({{_, _, _}, {_, _, _}}, Message#message.datetime)
        end
       ]
@@ -46,9 +46,12 @@ get_sent_timeline_test_() ->
        fun() -> 
 	       Text = "hello world ",
 	       Pid = whereis(messge_db_server),	       
-	       {ok, MessageId1} = message_db:save_message(Pid, Text ++ "1"),
-	       {ok, MessageId2} = message_db:save_message(Pid, Text ++ "2"),
-	       {ok, MessageId3} = message_db:save_message(Pid, Text ++ "3"),
+	       {ok, MessageId1} = 
+                   message_db:save_message(Pid, list_to_binary(Text ++ "1")),
+	       {ok, MessageId2} = 
+                   message_db:save_message(Pid, list_to_binary(Text ++ "2")),
+	       {ok, MessageId3} = 
+                   message_db:save_message(Pid, list_to_binary(Text ++ "3")),
 
 	       [M3, M2, M1] = message_db:get_sent_timeline(Pid, 10),
 	       ?assertEqual(-1, M1#message.id),
@@ -57,9 +60,9 @@ get_sent_timeline_test_() ->
 	       ?assertEqual(MessageId1, M1#message.message_id),
 	       ?assertEqual(MessageId2, M2#message.message_id),
 	       ?assertEqual(MessageId3, M3#message.message_id),
-	       ?assertEqual(Text ++ "1", M1#message.text),
-	       ?assertEqual(Text ++ "2", M2#message.text),
-	       ?assertEqual(Text ++ "3", M3#message.text),
+	       ?assertEqual(list_to_binary(Text ++ "1"), M1#message.text),
+	       ?assertEqual(list_to_binary(Text ++ "2"), M2#message.text),
+	       ?assertEqual(list_to_binary(Text ++ "3"), M3#message.text),
 	       ?assertMatch({{_, _, _}, {_, _, _}}, M1#message.datetime),
 	       ?assertMatch({{_, _, _}, {_, _, _}}, M2#message.datetime),
 	       ?assertMatch({{_, _, _}, {_, _, _}}, M3#message.datetime)
@@ -75,14 +78,17 @@ get_latest_message_test_() ->
        fun() -> 
 	       Text = "hello world ",
 	       Pid = whereis(messge_db_server),	       
-	       {ok, _MessageId1} = message_db:save_message(Pid, Text ++ "1"),
-	       {ok, _MessageId2} = message_db:save_message(Pid, Text ++ "2"),
-	       {ok, MessageId3} = message_db:save_message(Pid, Text ++ "3"),
+	       {ok, _MessageId1} = 
+                   message_db:save_message(Pid, list_to_binary(Text ++ "1")),
+	       {ok, _MessageId2} = 
+                   message_db:save_message(Pid, list_to_binary(Text ++ "2")),
+	       {ok, MessageId3} = 
+                   message_db:save_message(Pid, list_to_binary(Text ++ "3")),
 
 	       Message = message_db:get_latest_message(Pid),
 	       ?assertEqual(-3, Message#message.id),
 	       ?assertEqual(MessageId3, Message#message.message_id),
-	       ?assertEqual(Text ++ "3", Message#message.text),
+	       ?assertEqual(list_to_binary(Text ++ "3"), Message#message.text),
 	       ?assertMatch({{_, _, _}, {_, _, _}}, Message#message.datetime)
        end
       ]

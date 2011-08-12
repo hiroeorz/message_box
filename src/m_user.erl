@@ -72,6 +72,11 @@ stop(UserName) ->
 update(UserName_OR_Id, AuthPassword, Mail, Password) ->
     call(UserName_OR_Id, update, [AuthPassword, Mail, Password]).    
 
+%%
+%% @doc send message to message_box.
+%%
+-spec(send_message(atom()|integer(), binary(), binary()) -> {ok, integer()}).
+
 send_message(UserName_OR_Id, Password, Text) ->
     call(UserName_OR_Id, send_message, [Password, Text]).
 
@@ -235,7 +240,7 @@ handle_request(latest_message, [State]) ->
     Result = message_db:get_latest_message(User#user.name),
     {Result, State};
 
-handle_request(send_message, [State, Password, Text]) ->
+handle_request(send_message, [State, Password, TextBin]) ->
     User = State#user_state.user,
     OneTimePasswordList = State#user_state.one_time_password_list,
     FollowerDB_Pid = State#user_state.follower_db_pid,
@@ -244,12 +249,12 @@ handle_request(send_message, [State, Password, Text]) ->
 
     case util:authenticate(User, Password, OneTimePasswordList) of
 	{ok, authenticated} ->
-	    case message_db:save_message(MessageDB_Pid, Text) of
+	    case message_db:save_message(MessageDB_Pid, TextBin) of
 		{ok, MessageId} ->
-		    IsReplyTo = util:is_reply_text(Text),
+		    IsReplyTo = util:is_reply_text(TextBin),
 		    send_to_followers(MessageId, FollowerDB_Pid, 
 				      HomeDB_Pid, IsReplyTo),
-		    ReplyToList = util:get_reply_list(Text),
+		    ReplyToList = util:get_reply_list(TextBin),
 		    send_to_replies(MessageId, ReplyToList),
 		    {{ok, MessageId}, State};
 		Other -> {Other, State}

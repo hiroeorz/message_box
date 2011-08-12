@@ -68,11 +68,17 @@ restore_records(Device, Records) ->
     end.
 
 %%
-%% @doc export functions
+%% @doc save message to database.
 %%
+-spec(save_message(pid(), binary()) -> ok ).
 
-save_message(Pid, Text)->
-    call(Pid, save_message, [Text]).
+save_message(Pid, Bin)->
+    call(Pid, save_message, [Bin]).
+
+%%
+%% @doc get message from database. auto call to user process.
+%%
+-spec(get_message(integer()) -> #message{} ).
 
 get_message(Id)->
     case util:get_user_from_message_id(Id) of
@@ -85,11 +91,26 @@ get_message(Id)->
 	Other -> Other
     end.
 
+%%
+%% @doc get message from database.
+%%
+-spec(get_message(pid(), integer()) -> #message{} ).
+
 get_message(Pid, Id)->
     reference_call(Pid, get_message, [Id]).
 
+%%
+%% @doc get sent timeline, max length is Count.
+%%
+-spec(get_sent_timeline(pid(), integer()) -> list(#message{}) ).
+
 get_sent_timeline(Pid, Count)->
     reference_call(Pid, get_sent_timeline, [Count]).
+
+%%
+%% @doc get latest message.
+%%
+-spec(get_latest_message(pid()) -> #message{} ).
 
 get_latest_message(Pid)->
     reference_call(Pid, get_latest_message, []).
@@ -144,12 +165,12 @@ loop({User, DBPid}) ->
 %% @doc server handlers
 %%
 
-handle_request(save_message, [User, DBPid, Text])->
+handle_request(save_message, [User, DBPid, Bin])->
     Id = get_max_id(DBPid) - 1,
     MessageId = get_message_id(User#user.id, Id),
     Message = #message{id = Id, 
                        message_id = MessageId, 
-                       text = Text, 
+                       text = Bin, 
 		       datetime={date(), time()}},
 
     Device = db_name(User#user.name),
@@ -254,7 +275,7 @@ parse_message_records(RowList, RecordList) ->
 	    {Id, MsgId, TextBin, Sec} = Row,
 	    Datetime = calendar:gregorian_seconds_to_datetime(Sec),
 	    Record = #message{id = Id, message_id = MsgId,
-			      text = binary:bin_to_list(TextBin),
+			      text = TextBin,
 			      datetime = Datetime},
 	    parse_message_records(Tail, [Record | RecordList])
     end.
@@ -266,5 +287,5 @@ insert_message_to_sqlite3(DBPid, Message) ->
                         values(:id, :message_id, :text, :datetime)",
 		    [{':id'        , Message#message.id},
 		     {':message_id', Message#message.message_id},
-		     {':text'      , Message#message.text},
+		     {':text'      , binary_to_list(Message#message.text)},
 		     {':datetime'  , Sec}]).

@@ -63,6 +63,11 @@ get_timeline_ids(Device, Count, Before, Result)->
 %%
 %% @doc create reply name list from tweet text.
 %%
+-spec(get_reply_list(string()) -> list(atom()) ).
+
+get_reply_list(Text) when is_binary(Text) ->
+    get_reply_list(binary_to_list(Text));
+
 get_reply_list(Text) when is_list(Text) ->
     Tokens = string:tokens(Text, ?SEPARATOR),
     get_reply_list(Tokens, []).
@@ -79,7 +84,15 @@ get_reply_list(Tokens, List) when is_list(Tokens) ->
 	    get_reply_list(Tail, List)
     end.
 
-is_reply_text(Text) ->
+%%
+%% @doc if added Text is replay message.return {true, #usr{}} orelse {false, nil}
+%%
+-spec(is_reply_text(binary() | string()) -> {true, #user{}} | {false, nil} ).
+
+is_reply_text(Text) when is_binary(Text) ->
+    is_reply_text(binary_to_list(Text));
+
+is_reply_text(Text) when is_list(Text) ->
     case string:sub_string(Text, 1, 1) of
 	"@" ->
 	    [ToToken | _Tail] = string:tokens(Text, ?SEPARATOR),

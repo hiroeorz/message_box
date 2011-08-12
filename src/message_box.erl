@@ -117,10 +117,10 @@ update_user(UserName, AuthPassword, Mail, Password) when is_atom(UserName) ->
 %%
 %% @doc send message to timeline.
 %%
--spec(send_message(integer(), string(), string()) -> 
+-spec(send_message(integer(), binary()|string(), binary()) -> 
              {ok, integer()} | {error,unauthenticated}).
 
-send_message(Id, Password, Message) ->
+send_message(Id, Password, Message) when is_binary(Message) ->
     spawn_call(send_message, [Id, Password, Message]).
 
 %%

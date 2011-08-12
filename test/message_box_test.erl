@@ -98,7 +98,7 @@ all_test_() ->
 	 fun() ->
 		 message_box_test:wait(),
 		 ShinId = message_box_test:get_id(shin),
-		 Message1 = "hello world",
+		 Message1 = <<"hello world">>,
 		 {ok, OneTimePassword, _User} = 
                      message_box:authenticate("shin", "aaa"),
 
@@ -116,7 +116,7 @@ all_test_() ->
 	 fun() ->
 		 message_box_test:wait(),
 		 ShinId = message_box_test:get_id(shin),
-		 Message1 = "failure message",
+		 Message1 = <<"failure message">>,
 		 Result = message_box:send_message(ShinId, "invalidpas", 
 						   Message1),
 		 ?assertEqual({error, unauthenticated}, Result) 
@@ -127,7 +127,7 @@ all_test_() ->
 	 fun() ->
 		 message_box_test:wait(),
 		 ShinId = message_box_test:get_id(shin),
-		 Message1 = "failure message",
+		 Message1 = <<"failure message">>,
 		 Result = message_box:send_message(ShinId, "bbb", 
 						   Message1),
 		 ?assertEqual({error, unauthenticated}, Result) 
@@ -174,7 +174,7 @@ all_test_() ->
 		 message_box_test:wait(),
 		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
 		 
-		 Message2 = "hello everyone!! :)",
+		 Message2 = <<"hello everyone!! :)">>,
 		 {ok, _Message2Id} = message_box:send_message(ShinId,
 							      "aaa", 
 							      Message2),
@@ -197,7 +197,7 @@ all_test_() ->
 	 fun() ->
 		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
 		 
-		 Message3 = "I am tired :<",
+		 Message3 = <<"I am tired :<">>,
 		 message_box:send_message(User1Id, "bbb", Message3),
 		 message_box_test:wait(),
 		 
@@ -236,7 +236,7 @@ all_test_() ->
 	 fun() ->
 		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
 		 
-		 Message4 = "@shin Thank you for your follow!! :-)",
+		 Message4 = <<"@shin Thank you for your follow!! :-)">>,
 		 message_box:send_message(User1Id, "bbb", Message4),
 		 message_box_test:wait(),
 		 
@@ -266,7 +266,7 @@ all_test_() ->
 	         % 内容を確認
 		 ShinMentions_1 = message_box:get_mentions_timeline(ShinId, 10),
 		 Latest_02 = lists:nth(1, ShinMentions_1),
-		 Message4 = "@shin Thank you for your follow!! :-)",
+		 Message4 = <<"@shin Thank you for your follow!! :-)">>,
 		 ?assertEqual(Message4, Latest_02#message.text),
 		 ?assertEqual(lists:nth(1, ShinMentions_1), 
 			      lists:nth(1, ShinHome_2)),
@@ -287,7 +287,7 @@ all_test_() ->
 	 fun() ->
 		 [User1Id] = get_id_list([user1]),
 		 User1Id = message_box_test:get_id(user1),
-		 Message5 = "@user2 hello! user2 :-)",
+		 Message5 = <<"@user2 hello! user2 :-)">>,
 		 message_box:send_message(User1Id,  "bbb", Message5),
 		 message_box_test:wait()
 	 end
@@ -311,7 +311,7 @@ all_test_() ->
        { "リプライは両者をフォローしているユーザのホームにも出現する",
 	 fun() ->
 		 [ShinId, User1Id, User2Id] = get_id_list([shin, user1, user2]),
-		 Message5 = "@user2 hello! user2 :-)",
+		 Message5 = <<"@user2 hello! user2 :-)">>,
 		 
 		 ShinHome_3 = message_box:get_home_timeline(ShinId, 10),
 		 ?assertEqual(5, length(ShinHome_3)),
