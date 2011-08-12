@@ -263,6 +263,7 @@ db_name(UserName)-> UserName.
 %%
 %% @doc parse message record from sqlite3 to erlang record.
 %%
+-spec(parse_message_records(list()) -> list(#message{}) ).
 
 parse_message_records(Result) ->
     [{columns, _ColumnList}, {rows, RowList}] = Result,
@@ -287,5 +288,5 @@ insert_message_to_sqlite3(DBPid, Message) ->
                         values(:id, :message_id, :text, :datetime)",
 		    [{':id'        , Message#message.id},
 		     {':message_id', Message#message.message_id},
-		     {':text'      , binary_to_list(Message#message.text)},
+		     {':text'      , Message#message.text},
 		     {':datetime'  , Sec}]).
