@@ -16,7 +16,7 @@ Module mentions_db
 
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_timeline-2">get_timeline/2</a></td><td></td></tr><tr><td valign="top"><a href="#init-2">init/2</a></td><td></td></tr><tr><td valign="top"><a href="#save_message_id-2">save_message_id/2</a></td><td>export functions.</td></tr><tr><td valign="top"><a href="#start-2">start/2</a></td><td>initial setup functions.</td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_timeline-2">get_timeline/2</a></td><td>create mentions timeline and return list of message.</td></tr><tr><td valign="top"><a href="#init-2">init/2</a></td><td></td></tr><tr><td valign="top"><a href="#save_message_id-2">save_message_id/2</a></td><td>save message_id to ets and sqlite3 database.</td></tr><tr><td valign="top"><a href="#start-2">start/2</a></td><td>start process.</td></tr><tr><td valign="top"><a href="#stop-1">stop/1</a></td><td>stop process.</td></tr></table>
 
 
 
@@ -32,8 +32,13 @@ Module mentions_db
 
 
 
-`get_timeline(Pid, Count) -> any()`
+<pre>get_timeline(Pid::pid(), Count::integer()) -> [#message{}]</pre>
+<br></br>
 
+
+
+
+create mentions timeline and return list of message.
 <a name="init-2"></a>
 
 <h3>init/2</h3>
@@ -52,11 +57,13 @@ Module mentions_db
 
 
 
-`save_message_id(Pid, MessageId) -> any()`
+<pre>save_message_id(Pid::pid(), Message::#message{}) -> ok</pre>
+<br></br>
 
 
 
-export functions
+
+save message_id to ets and sqlite3 database.
 <a name="start-2"></a>
 
 <h3>start/2</h3>
@@ -65,11 +72,13 @@ export functions
 
 
 
-`start(UserName, DBPid) -> any()`
+<pre>start(UserName::atom(), DBPid::pid()) -> pid()</pre>
+<br></br>
 
 
 
-initial setup functions
+
+start process
 <a name="stop-1"></a>
 
 <h3>stop/1</h3>
@@ -78,5 +87,10 @@ initial setup functions
 
 
 
-`stop(Pid) -> any()`
+<pre>stop(Pid::pid()) -> ok</pre>
+<br></br>
 
+
+
+
+stop process

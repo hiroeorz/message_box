@@ -10,11 +10,17 @@
 -export([save_message_id/2, get_timeline/2]).
 
 %%
-%% @doc initial setup functions
+%% @doc start process
 %%
+-spec(start(atom(), pid()) -> pid()).
 
 start(UserName, DBPid)->
     spawn_link(?MODULE, init, [UserName, DBPid]).
+
+%%
+%% @doc stop process
+%%
+-spec(stop(pid()) -> ok).
 
 stop(Pid) ->
     Pid ! {stop, self()}.
@@ -26,10 +32,20 @@ init(UserName, DBPid)->
     {ok, User} = user_db:lookup_name(UserName),
     loop({User, DBPid}).
 
+%%
+%% @doc create mentions databases.
+%%
+-spec(create_tables(atom(), pid()) -> ok).
+
 create_tables(UserName, DBPid)->
     Device = db_name(UserName),  
     ets:new(Device, [ordered_set, named_table, {keypos, #message_index.id}]),
     create_sqlite3_tables(DBPid).
+
+%%
+%% @doc read data from file and write to ets table.
+%%
+-spec(restore_table(atom(), pid()) -> ok).
 
 restore_table(UserName, DBPid)->
     MessageMaxSizeOnMemory = message_box_config:get(message_max_size_on_memory),
@@ -41,6 +57,11 @@ restore_table(UserName, DBPid)->
     Device = db_name(UserName),
     restore_records(Device, Records).
 
+%%
+%% @doc read data from file and write to ets table.
+%%
+-spec(restore_records(atom(), list(#message{})) -> ok).
+
 restore_records(Device, Records) ->
     case Records of
 	[] -> ok;
@@ -49,8 +70,18 @@ restore_records(Device, Records) ->
 	    restore_records(Device, Tail)
     end.
 
+%%
+%% @doc close table.
+%%
+-spec(close_tables(atom()) -> true).
+
 close_tables(Device)->
     ets:delete(Device).
+
+%%
+%% @doc close table.
+%%
+-spec(create_sqlite3_tables(pid()) -> ok).
 
 create_sqlite3_tables(DBPid) ->
     case lists:member(mentions, sqlite3:list_tables(DBPid)) of
@@ -63,19 +94,24 @@ create_sqlite3_tables(DBPid) ->
     end.
 
 %%
-%% @doc export functions
+%% @doc save message_id to ets and sqlite3 database.
 %%
+-spec(save_message_id(pid(), #message{}) -> ok).
 
 save_message_id(Pid, MessageId) ->
     call(Pid, save_message_id, [MessageId]).
+
+%%
+%% @doc create mentions timeline and return list of message.
+%%
+-spec(get_timeline(pid(), integer()) -> list(#message{})).
 
 get_timeline(Pid, Count) ->
     reference_call(Pid, get_timeline, [Count]).
 
 %%
-%% @doc remote call functions.
+%% @doc remote call function.
 %%
-
 call(Pid, Name, Args) ->
     Pid ! {request, self(), Name, Args},
     receive
@@ -164,6 +200,8 @@ handle_request(get_timeline, [User, DBPid, Count])->
 %%
 %% @doc get message from sqlite3
 %%
+-spec(get_message_from_db(pid(), integer()) -> list(#message_index{}) ).
+
 get_message_from_db(DBPid, Id) ->
     SqlResults = sqlite3:sql_exec(DBPid, 
                                   "select * from mentions where id = :id",
@@ -179,6 +217,8 @@ get_message_from_db(DBPid, Id) ->
 %%
 %% @doc collect other users message
 %%
+-spec(collect_loop(pid(), integer(), list()) -> list(#message{}) ).
+
 collect_loop(Pid, Count, Result) ->
     if length(Result) >= Count -> Result;
        true ->
@@ -192,8 +232,9 @@ collect_loop(Pid, Count, Result) ->
     end.
 
 %%
-%% @doc local functions.
+%% @doc get id list of message.
 %%
+-spec(get_timeline_ids(atom(), pid(), integer()) -> list(#message_index{}) ).
 
 get_timeline_ids(Device, DBPid, Count) ->
     MessageIdsFromEts = 
@@ -206,6 +247,12 @@ get_timeline_ids(Device, DBPid, Count) ->
 	    get_message_ids_from_db(DBPid, Count, MessageIdsFromEts);
        true -> MessageIdsFromEts
     end.    
+
+%%
+%% @doc get id list of message.
+%%
+-spec(get_message_ids_from_db(pid(), integer(), list(#message_index{})) -> 
+             list(#message_index{}) ).
 
 get_message_ids_from_db(_DBPid, _Count, []) -> [];
 get_message_ids_from_db(DBPid, Count, MessageIdsFromEts) ->
@@ -221,6 +268,11 @@ get_message_ids_from_db(DBPid, Count, MessageIdsFromEts) ->
 			    parse_message_records(SqlResult)),
 	    MessageIdsFromEts ++ Ids.    
 
+%%
+%% @doc get max id for select next id.
+%%
+-spec(get_max_id(pid()) -> integer() ).
+
 get_max_id(DBPid) ->
     Result = sqlite3:sql_exec(DBPid, "select * from mentions 
                                            order by id limit 1"),
@@ -230,12 +282,18 @@ get_max_id(DBPid) ->
 	[LastRecord] -> LastRecord#message_index.id
     end.
 
+%%
+%% @doc get max id for select next id.
+%%
+-spec(db_name(atom()) -> atom() ).
+
 db_name(UserName)-> 
     list_to_atom(atom_to_list(UserName) ++ "_mentions").
 
 %%
 %% @doc parse message record from sqlite3 to erlang record.
 %%
+-spec(parse_message_records(list()) -> list(#message_index{}) ).
 
 parse_message_records(Result) ->
     [{columns, _ColumnList}, {rows, RowList}] = Result,
@@ -249,6 +307,12 @@ parse_message_records(RowList, RecordList) ->
 	    Record = #message_index{id = Id, message_id = MsgId},
 	    parse_message_records(Tail, [Record | RecordList])
     end.
+
+%%
+%% @doc insert new message to sqlite3.
+%%
+-spec(insert_message_to_sqlite3(pid(), #message_index{}) -> 
+             {rowid, integer()} | {error, integer(), string()} ).
 
 insert_message_to_sqlite3(DBPid, MessageIndex) ->
     sqlite3:sql_exec(DBPid,
