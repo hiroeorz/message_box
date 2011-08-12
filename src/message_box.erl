@@ -42,6 +42,7 @@ start(ConfigFilePath) ->
 init() ->
     crypto:start(),
     UserDbFilePath = message_box_config:get(user_db_file_path),
+    RubyPort = message_box_config:get(ruby_port),
 
     case node() of
 	nonode@nohost -> ok;
@@ -53,20 +54,27 @@ init() ->
     user_db:start(UserDbFilePath),
     user_manager:start(),
     user_manager:start_all_users(),
-    start_ruby_server(),
+
+    case RubyPort of
+        0 -> ok;
+        RPort ->
+            start_ruby_server(RPort)
+    end,
+
     process_flag(trap_exit, true),
     loop({date()}).
 
 %%
 %% @doc all system shuting down.
 %%
+-spec(stop() -> ok ).
+
 stop() ->
     call(stop, []).
 
-start_ruby_server() ->
-    Port = message_box_config:get(ruby_port),
-    start_ruby_server(Port).
-
+%%
+%% @doc start process for ruby rcp.
+%%
 start_ruby_server(Port) ->
     spawn_link(rulang, start_server, [Port]).
 
